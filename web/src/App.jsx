@@ -56,7 +56,6 @@ function Shell() {
         <nav className="rside" aria-label="Menu utama">
           <h4>Alur Kerja</h4>
           {NAV.map(([k, ic, l]) => <button key={k} className={view.page === k ? 'on' : ''} onClick={() => go(k)}><Icon n={ic} size={20} /> {l}</button>)}
-          <div className="sc"><b>Mode lapangan</b>Gunakan HP untuk survei dan tagging. Laptop untuk pemeriksaan dan finalisasi.</div>
         </nav>
         <main className="rmain"><Page key={view.page + (view.opt || '')} go={go} opt={view.opt} />
           <p className="foot">PT PLN (Persero) · UP3 Klaten · Divisi Perencanaan</p></main>
