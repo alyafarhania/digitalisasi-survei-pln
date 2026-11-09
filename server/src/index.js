@@ -169,12 +169,19 @@ app.get('/api/proyek/:kode/rab', wrap(async (req, res) => {
   const doc = await loadDoc(req.params.kode); if (!doc) return res.sendStatus(404)
   const d = withOpt(doc, req); res.json({ opsi: d.rabOpt, ...hitungRab(d, await rabCtx(d)) })
 }))
-app.get('/api/proyek/:kode/export.xlsx', wrap(async (req, res) => {
+const exportXlsx = wrap(async (req, res) => {
   const doc = await loadDoc(req.params.kode); if (!doc) return res.sendStatus(404)
   const d = withOpt(doc, req), R = hitungRab(d, await rabCtx(d)), { rows } = R
   const wb = new ExcelJS.Workbook(), g = wb.addWorksheet('GAMBAR'), r = wb.addWorksheet('RAB')
   const bold = (row) => { row.font = { bold: true } }
   g.addRow(['GAMBAR SKEMATIK JARINGAN']).font = { bold: true, size: 14 }; g.addRow([])
+  // Gambar skematik dikirim klien sebagai PNG; ditempel di atas tabel data.
+  const png = typeof req.body?.png === 'string' && /^data:image\/png;base64,/.test(req.body.png) ? Buffer.from(req.body.png.split(',')[1], 'base64') : null
+  if (png && png.length > 100) {
+    const lebar = png.readUInt32BE(16), tinggi = png.readUInt32BE(20), w = 1100, h = Math.round((tinggi * w) / lebar)
+    g.addImage(wb.addImage({ buffer: png, extension: 'png' }), { tl: { col: 0, row: 2 }, ext: { width: w, height: h } })
+    for (let i = 0; i < Math.ceil(h / 20) + 2; i++) g.addRow([])
+  }
   g.addRows([['No. Gambar', d.meta?.noGambar], ['Skala', d.meta?.skala], ['Perihal', d.meta?.perihal], ['Pelanggan', d.nama], ['Lokasi', d.lokasi], []])
   bold(g.addRow(['No', 'Nomor Tiang', 'Kode Konstruksi', 'Sudut', 'Jenis Tiang', 'Peralatan', 'Penghantar', 'Jarak dari titik sebelumnya (m)', 'Status', 'Konstruksi Lama', 'Konstruksi Bongkar', 'Lat', 'Lng']))
   const sp = spans(d.points)
@@ -206,7 +213,9 @@ app.get('/api/proyek/:kode/export.xlsx', wrap(async (req, res) => {
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
   res.setHeader('Content-Disposition', `attachment; filename="${(d.nomor || 'project').replace(/[^\w-]+/g, '_')}.xlsx"`)
   await wb.xlsx.write(res); res.end()
-}))
+})
+app.get('/api/proyek/:kode/export.xlsx', exportXlsx)
+app.post('/api/proyek/:kode/export.xlsx', exportXlsx)
 
 // ===== Real time (Socket.IO): klien bergabung ke ruang berdasarkan kode project =====
 io.on('connection', (s) => {

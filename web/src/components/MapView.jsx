@@ -1,16 +1,17 @@
 import { DEMO } from '../lib/api'
 // Pratinjau tanpa internet: ubin peta tiruan (jalan berbentuk kisi) agar peta tidak kosong.
 const hash = (n) => { let h = (n * 2654435761) >>> 0; h ^= h >>> 15; return (h % 1000) / 1000 }
-function demoTile(url) {
-  const m = url.match(/\/(\d+)\/(\d+)\/(\d+)\.png/); if (!m) return ''
-  const [, z, x, y] = m.map(Number), q = (a) => Math.round(40 + hash(a + z * 7) * 176)
+function demoTile(z, x, y, sat) {
+  const q = (a) => Math.round(40 + hash(a + z * 7) * 176)
   const hy = q(y * 31 + 5), vx = q(x * 17 + 11), big = hash(x * 3 + y * 5 + z) > 0.7
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#EEF1EA"/>` +
+  const svg = sat
+    ? `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#5B6B45"/><rect x="${vx - 60}" y="${hy + 8}" width="70" height="50" fill="${big ? '#3F5230' : '#8A7B6A'}"/><rect x="0" y="${hy - 4}" width="256" height="8" fill="#B8B2A4"/><rect x="${vx - 3}" y="0" width="6" height="256" fill="#B8B2A4"/></svg>`
+    : `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#EEF1EA"/>` +
     (big ? `<rect x="${vx + 10}" y="${hy + 10}" width="90" height="70" fill="#D7E6C8"/>` : `<rect x="${vx - 70}" y="${hy + 8}" width="60" height="40" fill="#E3E6EC"/>`) +
     `<rect x="0" y="${hy - 5}" width="256" height="10" fill="#fff" stroke="#D6D9DE"/><rect x="${vx - 4}" y="0" width="8" height="256" fill="#fff" stroke="#D6D9DE"/></svg>`
   return 'data:image/svg+xml,' + encodeURIComponent(svg)
 }
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MapContainer, Marker, Polyline, useMap, useMapEvents, CircleMarker, Circle } from 'react-leaflet'
 import L from 'leaflet'
@@ -18,12 +19,12 @@ import 'leaflet/dist/leaflet.css'
 import { Icon } from './ui'
 import { isTajam } from '../store'
 import { Sym, colorOf, symOfPoint, statusOf, lineSymOf } from '../lib/symbols'
-import { getTile } from '../lib/offlineTiles'
+import { getTile, LAYERS, MAX_ZOOM, getLayerPref, setLayerPref } from '../lib/offlineTiles'
 
 const WARN = '#FF8A00'
 
 // Lapisan tile: cek penyimpanan offline dulu, baru jaringan
-function OfflineTiles() {
+function OfflineTiles({ layerKey }) {
   const map = useMap()
   useEffect(() => {
     const Layer = L.TileLayer.extend({
@@ -39,16 +40,17 @@ function OfflineTiles() {
             img.src = o
           } else {
             img.onload = () => done(null, img); img.onerror = () => { img.removeAttribute('src'); img.style.opacity = 0; done(null, img) }
-            img.src = DEMO ? demoTile(url) : url
+            img.src = DEMO ? demoTile(coords.z, coords.x, coords.y, layerKey === 'satelit') : url
           }
         })
         return img
       },
     })
-    const layer = new Layer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap contributors' })
+    const def = LAYERS[layerKey]
+    const layer = new Layer(def.url('{z}', '{x}', '{y}'), { maxZoom: MAX_ZOOM, maxNativeZoom: def.maxNative, attribution: def.attr })
     layer.addTo(map)
     return () => { map.removeLayer(layer) }
-  }, [map])
+  }, [map, layerKey])
   return null
 }
 
@@ -67,6 +69,15 @@ function Fly({ target }) {
   return null
 }
 function Bridge({ mapRef }) { mapRef.current = useMap(); return null }
+function LayerSwitch({ value, onChange }) {
+  return (
+    <div className="map-layer" role="group" aria-label="Tampilan peta">
+      {Object.entries(LAYERS).map(([k, l]) => (
+        <button key={k} className={value === k ? 'on' : ''} onClick={() => onChange(k)}>{l.nama}</button>
+      ))}
+    </div>
+  )
+}
 function Zoom() {
   const map = useMap()
   return (
@@ -78,6 +89,8 @@ function Zoom() {
 }
 
 export default function MapView({ project, selected, onSelect, mode, running, onAddPoint, onAddCross, onDelete, fly, gpsPos, areaCircle, mapRef }) {
+  const [layerKey, setLayerKey] = useState(getLayerPref)
+  const pilihLayer = (k) => { setLayerKey(k); setLayerPref(k) }
   const pts = project.points
   const center = pts[0] ? [pts[0].lat, pts[0].lng] : [-7.7059, 110.6016]
   const onMap = (ll) => {
@@ -86,8 +99,9 @@ export default function MapView({ project, selected, onSelect, mode, running, on
     if (mode === 'silang') onAddCross(ll)
   }
   return (
-    <MapContainer center={center} zoom={17} zoomControl={false} className="map">
-      <OfflineTiles />
+    <MapContainer center={center} zoom={17} maxZoom={MAX_ZOOM} zoomControl={false} className="map">
+      <OfflineTiles layerKey={layerKey} />
+      <LayerSwitch value={layerKey} onChange={pilihLayer} />
       <Bridge mapRef={mapRef} />
       <Clicker onMap={onMap} />
       <Fly target={fly} />

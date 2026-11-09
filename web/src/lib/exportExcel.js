@@ -1,13 +1,21 @@
 import * as XLSX from 'xlsx'
 import { hitungRab, spans } from './rab'
+import { gambarPng } from './gambarPng'
 
 // F9: ekspor Excel (sheet GAMBAR + RAB). Online & sudah tersinkron -> dibuat server (exceljs); offline -> dibuat di perangkat.
-export function exportExcel(p) {
+export async function exportExcel(p) {
   if (navigator.onLine && p.version && !p.dirty) {
-    const a = document.createElement('a')
-    a.href = `/api/proyek/${p.kode}/export.xlsx?harga=${p.rabOpt.harga}&jenis=${encodeURIComponent(p.rabOpt.jenis)}&asal=${encodeURIComponent(p.rabOpt.asal)}&slo=${p.rabOpt.slo === false ? 0 : 1}`
-    a.download = ''; document.body.appendChild(a); a.click(); a.remove(); return
+    try {
+      const png = await gambarPng(p, 1.5)
+      const q = `harga=${p.rabOpt.harga}&jenis=${encodeURIComponent(p.rabOpt.jenis)}&asal=${encodeURIComponent(p.rabOpt.asal)}&slo=${p.rabOpt.slo === false ? 0 : 1}`
+      const r = await fetch(`/api/proyek/${p.kode}/export.xlsx?${q}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ png }) })
+      if (!r.ok) throw new Error('Server menolak')
+      const a = document.createElement('a'); a.href = URL.createObjectURL(await r.blob()); a.download = `${(p.nomor || 'project').replace(/[^\w-]+/g, '_')}.xlsx`
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); return
+    } catch { /* lanjut ke ekspor di perangkat */ }
   }
+  // Offline: Excel dibuat di perangkat (tanpa gambar di dalamnya), gambar diunduh sebagai PNG terpisah.
+  try { const a = document.createElement('a'); a.download = `Gambar_${p.nomor}.png`; a.href = await gambarPng(p); a.click() } catch { /* abaikan */ }
   const wb = XLSX.utils.book_new(), sp = spans(p.points)
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
     ['GAMBAR SKEMATIK JARINGAN'], [], ['No. Gambar', p.meta.noGambar], ['Skala', p.meta.skala], ['Perihal', p.meta.perihal], ['Pelanggan', p.nama], ['Lokasi', p.lokasi], [],

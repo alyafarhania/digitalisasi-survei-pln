@@ -6,6 +6,7 @@ import AtributPanel from '../components/AtributPanel'
 import Empty from './Empty'
 import { maxSudut } from '../lib/konstruksi'
 import { Icon } from '../components/ui'
+import { RIGHT, buatSkema, SkemaIsi } from '../lib/skema'
 
 function Inner({ go }) {
   const { active: project, update, online } = useApp()
@@ -60,6 +61,7 @@ function Inner({ go }) {
   const modes = [['titik', 'pin', 'Titik'], ['silang', 'layers', 'Silang'], ['hapus', 'trash', 'Hapus']]
 
   const total = project.points.reduce((a, p, i) => a + (i ? Math.round(dist(project.points[i - 1], p)) : 0), 0)
+  const sk = buatSkema(project)
   const tajam = project.points.filter((p) => isTajam(project, p)).length
   const selectPoint = (id) => { setSelId(id); window.innerWidth < 1024 && setTimeout(() => document.getElementById('atribut')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50) }
   return (
@@ -98,6 +100,16 @@ function Inner({ go }) {
             <div className="stat"><b>{total.toLocaleString('id-ID')} m</b><span>Total jalur</span></div>
             <div className="stat"><b>{tajam}</b><span>Sudut &gt; {maxSudut(project.jalur)}°</span></div>
           </div>
+          <details className="live-gambar" open>
+            <summary><b>Gambar langsung</b><span>berubah otomatis mengikuti titik di peta · ketuk titik untuk memilih</span><button type="button" className="btn sm ghost" onClick={(e) => { e.preventDefault(); go('gambar') }}>Buka penuh</button></summary>
+            {project.points.length < 2 ? <p className="empty" style={{ padding: 12 }}>Tandai minimal 2 titik di peta, gambar skematik muncul di sini.</p> : (
+              <svg viewBox={`0 0 ${RIGHT - 10} ${sk.H}`} style={{ width: '100%', display: 'block', background: '#fff' }} fontFamily="Calibri, Arial, sans-serif">
+                <rect x="3" y="3" width={RIGHT - 16} height={sk.H - 6} fill="none" stroke="#222" strokeWidth="1.5" />
+                <image href="/kompas.jpg" x="10" y="10" width="62" height="64" />
+                <SkemaIsi p={project} sk={sk} onSelect={selectPoint} selId={selId} />
+              </svg>
+            )}
+          </details>
         </div>
         <div id="atribut">
           <AtributPanel project={project} index={idx} onIndex={(i) => setSelId(project.points[i].id)} onChange={change}
