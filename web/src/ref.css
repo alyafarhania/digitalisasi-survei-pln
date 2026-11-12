@@ -206,3 +206,13 @@ body{font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;line-height
 .rabt input.pr.edited{background:#FFF7D6;border-color:var(--yel)}
 .rab-note{padding:12px 16px;font-size:13px;display:grid;gap:2px}
 .slo-t{margin-left:auto;font-size:12px;color:var(--mu);display:flex;align-items:center;gap:6px}
+
+/* Peta selebar halaman; panel atribut hanya muncul (melayang di kanan peta) saat sebuah titik diketuk */
+.mapstage{position:relative}
+.atr-x{position:absolute;right:8px;top:8px;z-index:3;width:30px;height:30px;border-radius:50%;border:1px solid var(--ln);background:#fff;display:grid;place-items:center;cursor:pointer;color:var(--b900)}
+@media(min-width:1024px){
+  .rmain .split{grid-template-columns:minmax(0,1fr)}
+  .rmain .split .rmap{height:min(76vh,760px)}
+  .mapstage>.atr-float{position:absolute;right:10px;top:62px;bottom:10px;width:min(390px,calc(100% - 20px));z-index:800;overflow:auto;background:#fff;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.28)}
+  .mapstage>.atr-float .card{border:0;box-shadow:none;margin:0}
+}

@@ -68,6 +68,16 @@ function Fly({ target }) {
   useEffect(() => { if (target) map.flyTo([target.lat, target.lng], target.zoom || 17, { duration: 0.8 }) }, [target, map])
   return null
 }
+// Peta menyesuaikan ukuran saat wadahnya melebar/menyempit (tombol Perlebar peta, putar layar, dll.)
+function AutoSize() {
+  const map = useMap()
+  useEffect(() => {
+    const el = map.getContainer(), ro = new ResizeObserver(() => map.invalidateSize())
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [map])
+  return null
+}
 function Bridge({ mapRef }) { mapRef.current = useMap(); return null }
 function LayerSwitch({ value, onChange }) {
   return (
@@ -88,7 +98,7 @@ function Zoom() {
   )
 }
 
-export default function MapView({ project, selected, onSelect, mode, running, onAddPoint, onAddCross, onDelete, fly, gpsPos, areaCircle, mapRef }) {
+export default function MapView({ project, selected, onSelect, mode, running, onAddPoint, onAddCross, onDelete, onMove, fly, gpsPos, areaCircle, mapRef }) {
   const [layerKey, setLayerKey] = useState(getLayerPref)
   const pilihLayer = (k) => { setLayerKey(k); setLayerPref(k) }
   const pts = project.points
@@ -101,6 +111,7 @@ export default function MapView({ project, selected, onSelect, mode, running, on
   return (
     <MapContainer center={center} zoom={17} maxZoom={MAX_ZOOM} zoomControl={false} className="map">
       <OfflineTiles layerKey={layerKey} />
+      <AutoSize />
       <LayerSwitch value={layerKey} onChange={pilihLayer} />
       <Bridge mapRef={mapRef} />
       <Clicker onMap={onMap} />
@@ -116,11 +127,11 @@ export default function MapView({ project, selected, onSelect, mode, running, on
         )
       })}
       {pts.map((p) => (
-        <Marker key={p.id} position={[p.lat, p.lng]} icon={poleIcon(p, selected === p.id)}
-          eventHandlers={{ click: (e) => { e.originalEvent?.stopPropagation?.(); mode === 'hapus' && running ? onDelete(p.id) : onSelect(p.id) } }} />
+        <Marker key={p.id} position={[p.lat, p.lng]} icon={poleIcon(p, selected === p.id)} draggable={!!onMove}
+          eventHandlers={{ click: (e) => { e.originalEvent?.stopPropagation?.(); mode === 'hapus' && running ? onDelete(p.id) : onSelect(p.id) }, dragend: (e) => onMove && onMove(p.id, e.target.getLatLng()) }} />
       ))}
       {project.crossings.map((c) => (
-        <Marker key={c.id} position={[c.lat, c.lng]} icon={crossIcon(c.type)} eventHandlers={{ click: () => mode === 'hapus' && onDelete(c.id, true) }} />
+        <Marker key={c.id} position={[c.lat, c.lng]} icon={crossIcon(c.type)} draggable={!!onMove} eventHandlers={{ click: () => mode === 'hapus' && onDelete(c.id, true), dragend: (e) => onMove && onMove(c.id, e.target.getLatLng(), true) }} />
       ))}
       {gpsPos && <CircleMarker center={[gpsPos.lat, gpsPos.lng]} radius={8} pathOptions={{ color: '#fff', weight: 3, fillColor: '#0B6AA6', fillOpacity: 1 }} />}
     </MapContainer>

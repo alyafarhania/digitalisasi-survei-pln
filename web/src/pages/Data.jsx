@@ -37,7 +37,7 @@ export default function Data({ go, opt }) {
         <h1>{baru ? 'Project Baru' : 'Data Pelanggan'}</h1>
         <div className="actions">
           {baru ? <button className="btn" disabled={!ok} onClick={simpan}>Simpan &amp; Lanjut ke Peta <Icon n="chevR" size={16} /></button>
-            : <button className="btn ghost" onClick={() => go('peta')}>Lanjut ke Peta <Icon n="chevR" size={16} /></button>}
+            : <><button className="btn" onClick={() => go('data', 'baru')}>+ Pelanggan baru</button><button className="btn ghost" onClick={() => go('peta')}>Lanjut ke Peta <Icon n="chevR" size={16} /></button></>}
         </div>
         <p>Isi identitas calon pelanggan dan rencana pekerjaan sebelum menandai titik survei di lapangan.{p && <> Perubahan tersimpan otomatis. Kode project: <span className="code">{p.kode}</span></>}</p>
       </div>

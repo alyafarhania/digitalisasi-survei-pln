@@ -13,7 +13,7 @@ function Inner({ go }) {
   const [mode, setMode] = useState('titik')
   const [crossType, setCrossType] = useState('Jalan')
   const [running, setRunning] = useState(false)
-  const [selId, setSelId] = useState(project.points[0]?.id)
+  const [selId, setSelId] = useState(null)
   const [q, setQ] = useState('')
   const [fly, setFly] = useState(null)
   const [gps, setGps] = useState(null)
@@ -21,6 +21,7 @@ function Inner({ go }) {
   const mapRef = useRef(null)
 
   const idx = Math.max(0, project.points.findIndex((p) => p.id === selId))
+  const adaTerpilih = project.points.some((p) => p.id === selId)
   const toast = (t) => { setMsg(t); setTimeout(() => setMsg(''), 2800) }
 
   const addPoint = (ll) => {
@@ -33,6 +34,11 @@ function Inner({ go }) {
     const tinggi = crossType === 'SUTT' ? window.prompt('Tinggi lintasan (m):', '') || '' : ''
     update(project.id, (p) => ({ ...p, crossings: [...p.crossings, { id: crypto.randomUUID(), type: crossType, label, tinggi, lat: ll.lat, lng: ll.lng }] }))
   }
+  // Geser titik/penyeberangan yang sudah ditandai. Panjang manual di titik itu dan titik sesudahnya
+  // dikosongkan agar dihitung ulang dari jarak baru.
+  const movePoint = (id, ll, cross) => update(project.id, (p) => (cross
+    ? { ...p, crossings: p.crossings.map((c) => (c.id === id ? { ...c, lat: ll.lat, lng: ll.lng } : c)) }
+    : { ...p, points: p.points.map((x, i, arr) => (x.id === id ? { ...x, lat: ll.lat, lng: ll.lng, panjang: undefined } : arr[i - 1]?.id === id ? { ...x, panjang: undefined } : x)) }))
   const del = (id, cross) => update(project.id, (p) => (cross ? { ...p, crossings: p.crossings.filter((c) => c.id !== id) } : { ...p, points: p.points.filter((x) => x.id !== id) }))
   const change = (id, patch) => update(project.id, (p) => ({ ...p, points: p.points.map((x) => (x.id === id ? { ...x, ...patch } : x)) }))
 
@@ -69,13 +75,14 @@ function Inner({ go }) {
       <div className="pg-h">
         <h1>Peta &amp; Tagging Titik</h1>
         <div className="actions"><button className="btn ghost" onClick={() => go('gambar')}>Lihat Gambar <Icon n="chevR" size={16} /></button></div>
-        <p>Tekan <b>Mulai</b>, lalu ketuk peta atau gunakan posisi GPS untuk menambah titik tiang. Ketuk titik untuk mengisi atributnya.</p>
+        <p>Tekan <b>Mulai</b>, lalu ketuk peta atau gunakan posisi GPS untuk menambah titik tiang. Ketuk titik untuk mengisi atributnya (panel muncul di kanan peta). Tahan lalu geser titik untuk memindahkannya.</p>
       </div>
       <div className="split">
         <div>
+          <div className="mapstage">
           <div className="rmap">
             <MapView project={project} selected={selId} onSelect={selectPoint} mode={mode} running={running}
-              onAddPoint={addPoint} onAddCross={addCross} onDelete={del} fly={fly} gpsPos={gps} mapRef={mapRef} />
+              onAddPoint={addPoint} onAddCross={addCross} onDelete={del} onMove={movePoint} fly={fly} gpsPos={gps} mapRef={mapRef} />
             <div className="map-top">
               <form className="msearch" onSubmit={search}><Icon n="search" /><input placeholder="Cari lokasi (OpenStreetMap) atau koordinat…" aria-label="Cari lokasi" value={q} onChange={(e) => setQ(e.target.value)} /></form>
               <div className="mtools">
@@ -95,6 +102,14 @@ function Inner({ go }) {
             </div>
             {msg && <div className="toast">{msg}</div>}
           </div>
+          {adaTerpilih && (
+            <div id="atribut" className="atr-float">
+              <button type="button" className="atr-x" aria-label="Tutup panel atribut" title="Tutup" onClick={() => setSelId(null)}><Icon n="x" size={16} /></button>
+              <AtributPanel project={project} index={idx} onIndex={(i) => setSelId(project.points[i].id)} onChange={change}
+                onDelete={(id) => { del(id); toast('Titik dihapus') }} onSaved={() => toast('Titik tersimpan otomatis')} />
+            </div>
+          )}
+          </div>
           <div className="stat-row">
             <div className="stat"><b>{project.points.length}</b><span>Titik tiang</span></div>
             <div className="stat"><b>{total.toLocaleString('id-ID')} m</b><span>Total jalur</span></div>
@@ -110,10 +125,6 @@ function Inner({ go }) {
               </svg>
             )}
           </details>
-        </div>
-        <div id="atribut">
-          <AtributPanel project={project} index={idx} onIndex={(i) => setSelId(project.points[i].id)} onChange={change}
-            onDelete={(id) => { del(id); toast('Titik dihapus') }} onSaved={() => toast('Titik tersimpan otomatis')} />
         </div>
       </div>
     </>
