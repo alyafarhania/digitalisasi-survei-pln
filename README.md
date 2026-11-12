@@ -140,16 +140,6 @@ proyek
 
 ---
 
-## Masih perlu dikonfirmasi
-
-- Warna konstruksi eksisting: sekarang ungu tua, dokumen kebutuhan menyebut hitam.
-- Upah kabel AAAC dipetakan ke A3C, ini masih dugaan.
-- Aturan tiang besi serta simbol schoor dan vang net belum pasti.
-- Sebagian harga KHS kosong karena faktor harganya belum diketahui.
-- Belum ada login, siapa pun yang tahu kode project bisa membukanya.
-
----
-
 ## Pembuat
 
 Alya Farhania, Teknik Informatika, Institut Teknologi PLN. Dibuat untuk kebutuhan divisi Perencanaan PT PLN (Persero) UP3 Klaten.
