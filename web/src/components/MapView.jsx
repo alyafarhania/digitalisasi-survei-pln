@@ -19,7 +19,7 @@ import 'leaflet/dist/leaflet.css'
 import { Icon } from './ui'
 import { isTajam } from '../store'
 import { Sym, colorOf, symOfPoint, statusOf, lineSymOf } from '../lib/symbols'
-import { getTile, LAYERS, LABEL, MAX_ZOOM, getLayerPref, setLayerPref, getLabelPref, setLabelPref } from '../lib/offlineTiles'
+import { getTile, LAYERS, MAX_ZOOM, getLayerPref, setLayerPref, getLabelPref, setLabelPref } from '../lib/offlineTiles'
 
 const WARN = '#FF8A00'
 
@@ -54,14 +54,60 @@ function OfflineTiles({ layerKey }) {
   return null
 }
 
-// Nama tempat di atas satelit (butuh internet; tidak ikut diunduh offline)
-function Labels({ on }) {
+
+// Ikon + nama tempat (masjid, sekolah, pasar, toko, kantor, dll.) dari OpenStreetMap lewat Overpass, ditempel di atas satelit.
+const POI_URLS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']
+const poiCache = new Map()
+const poiGroup = (t) => {
+  const a = t.amenity || '', sh = t.shop, tr = t.tourism, le = t.leisure
+  if (/place_of_worship/.test(a)) return ['#7B5EA7', 'ibadah']
+  if (/school|university|college|kindergarten|library/.test(a)) return ['#2F6DB5', 'sekolah']
+  if (/hospital|clinic|doctors|pharmacy|dentist/.test(a)) return ['#D64545', 'kesehatan']
+  if (/restaurant|cafe|fast_food|food_court|bar/.test(a)) return ['#E8862A', 'makan']
+  if (sh || /marketplace|bank|atm|fuel/.test(a)) return ['#E8862A', 'toko']
+  if (tr || t.historic) return ['#7B5EA7', 'wisata']
+  if (le || /park|garden/.test(t.landuse || '')) return ['#2E9E5B', 'taman']
+  return ['#5B6C7A', 'kantor']
+}
+function Poi({ on }) {
   const map = useMap()
   useEffect(() => {
     if (!on || DEMO) return
-    const layer = L.tileLayer(LABEL.url, { maxZoom: MAX_ZOOM, maxNativeZoom: LABEL.maxNative, zIndex: 5, attribution: 'Labels © Esri' })
-    layer.addTo(map)
-    return () => { map.removeLayer(layer) }
+    const grup = L.layerGroup().addTo(map)
+    map.attributionControl?.addAttribution('Nama tempat © OpenStreetMap')
+    let timer, ctl
+    const muat = async () => {
+      if (map.getZoom() < 15) { grup.clearLayers(); return }
+      const b = map.getBounds().pad(0.1), r = (v) => v.toFixed(3)
+      const key = [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()].map(r).join(',')
+      let els = poiCache.get(key)
+      if (!els) {
+        ctl?.abort(); ctl = new AbortController()
+        const bb = `${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`
+        const q = `[out:json][timeout:20];(nwr["name"][~"^(amenity|shop|tourism|leisure|office|historic)$"~"."](${bb});nwr["name"]["place"~"^(village|hamlet|suburb|neighbourhood|town|locality|quarter)$"](${bb});way["name"]["highway"~"^(trunk|primary|secondary|tertiary|unclassified|residential|living_street)$"](${bb}););out center 400;`
+        for (const u of POI_URLS) {
+          try {
+            const res = await fetch(u, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, signal: ctl.signal })
+            if (!res.ok) continue
+            els = (await res.json()).elements || []; poiCache.set(key, els); break
+          } catch (e) { if (e.name === 'AbortError') return }
+        }
+      }
+      grup.clearLayers()
+      ;(els || []).forEach((e) => {
+        const lat = e.lat ?? e.center?.lat, lng = e.lon ?? e.center?.lon, nama = e.tags?.name
+        if (lat == null || lng == null || !nama) return
+        const t = e.tags, jenis = t.place ? 'place' : t.highway && !t.amenity && !t.shop && !t.tourism ? 'road' : 'poi'
+        const [c] = poiGroup(t)
+        L.marker([lat, lng], { interactive: false, keyboard: false, zIndexOffset: -500, icon: L.divIcon({
+          className: 'poi-wrap', iconSize: [10, 10], iconAnchor: [5, 5],
+          html: jenis === 'poi' ? `<span class="poi-dot" style="background:${c}"></span><span class="poi-name">${nama.replace(/[<>&]/g, '')}</span>` : `<span class="poi-${jenis}">${nama.replace(/[<>&]/g, '')}</span>`,
+        }) }).addTo(grup)
+      })
+    }
+    const jadwal = () => { clearTimeout(timer); timer = setTimeout(muat, 600) }
+    map.on('moveend', jadwal); jadwal()
+    return () => { clearTimeout(timer); ctl?.abort(); map.off('moveend', jadwal); map.attributionControl?.removeAttribution('Nama tempat © OpenStreetMap'); map.removeLayer(grup) }
   }, [map, on])
   return null
 }
@@ -104,7 +150,7 @@ function LayerSwitch({ value, onChange, label, onLabel }) {
       {Object.entries(LAYERS).map(([k, l]) => (
         <button key={k} className={value === k ? 'on' : ''} onClick={() => onChange(k)}>{l.nama}</button>
       ))}
-      {value === 'satelit' && <button className={label ? 'on' : ''} onClick={() => onLabel(!label)} title="Tampilkan nama tempat di atas satelit">Nama tempat</button>}
+      {value === 'satelit' && <button className={label ? 'on' : ''} onClick={() => onLabel(!label)} title="Tampilkan nama tempat, jalan, dan kampung di atas satelit">Nama tempat</button>}
     </div>
   )
 }
@@ -134,7 +180,7 @@ export default function MapView({ project, selected, onSelect, mode, running, on
     <MapContainer center={center} zoom={17} maxZoom={MAX_ZOOM} zoomControl={false} className="map">
       <OfflineTiles layerKey={layerKey} />
       <AutoSize />
-      <Labels on={layerKey === 'satelit' && label} />
+      <Poi on={layerKey === 'satelit' && label} />
       <LayerSwitch value={layerKey} onChange={pilihLayer} label={label} onLabel={pilihLabel} />
       <Bridge mapRef={mapRef} />
       <Clicker onMap={onMap} />

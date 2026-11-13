@@ -221,3 +221,12 @@ body{font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;line-height
 .pin-wrap{background:none;border:0}
 .pin-cari{position:relative;width:32px;height:42px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}
 .pin-cari span{position:absolute;left:38px;top:6px;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis;background:#fff;color:#111;font:600 12px/1.2 system-ui,sans-serif;padding:3px 7px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+
+/* Ikon + nama tempat di atas satelit */
+.poi-wrap{background:none;border:0;pointer-events:none}
+.poi-dot{position:absolute;left:0;top:0;width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 3px rgba(0,0,0,.6);box-sizing:border-box;width:14px;height:14px;left:-2px;top:-2px}
+.poi-name{position:absolute;left:14px;top:-3px;white-space:nowrap;color:#fff;font:600 11.5px/1.1 system-ui,sans-serif;text-shadow:0 0 3px #000,0 0 3px #000,1px 1px 2px #000}
+
+.poi-road,.poi-place{position:absolute;white-space:nowrap;transform:translate(-50%,-50%);color:#fff;text-shadow:0 0 3px #000,0 0 3px #000,1px 1px 2px #000}
+.poi-road{font:600 11px/1 system-ui,sans-serif;color:#FFE9A8;letter-spacing:.2px}
+.poi-place{font:700 11px/1 system-ui,sans-serif;text-transform:uppercase;letter-spacing:.8px}
