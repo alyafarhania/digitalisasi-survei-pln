@@ -1,14 +1,13 @@
 import { LEGEND, Sym, C_BARU, C_EKS } from './symbols'
-import { RIGHT, buatSkema, SkemaIsi } from './skema'
+import { RIGHT, buatSkema, SkemaIsi, ringkasPasang } from './skema'
 
 export const W = 1280, VW = RIGHT - 10
 
 // Seluruh lembar gambar (area gambar + panel kanan). untukFile = true: lebar penuh 1280 agar panel kanan ikut (PNG / Excel).
 export function GambarSvg({ p, sk: skIn, svgRef, onDown, onMove, onUp, untukFile }) {
   const sk = skIn || buatSkema(p), pts = p.points, H = sk.H
-  const pasang = pts.filter((x) => x.kodeManual || x.kode)
-  const bongkar = pts.filter((x) => x.konsBongkar)
-  const bRows = Math.max(12, pts.length)
+  const { pasang, bongkar } = ringkasPasang(p)
+  const bRows = Math.max(12, pasang.length, bongkar.length)
   const bY = 345, bBottom = Math.min(bY + 24 + bRows * 16, H - 215)
   const nRows = Math.floor((bBottom - bY - 24) / 16)
   const first = pts[0]
@@ -46,8 +45,8 @@ export function GambarSvg({ p, sk: skIn, svgRef, onDown, onMove, onUp, untukFile
                     <g key={i} transform={`translate(${RIGHT},${bY + 20 + i * 16})`}>
                       <rect width="380" height="16" fill="#fff" stroke="#222" strokeWidth="0.6" />
                       <line x1="190" x2="190" y2="16" stroke="#222" strokeWidth="0.8" />
-                      {a && <><text x="8" y="12" fontSize="11" fill={C_BARU}>{a.nomor}</text><text x="100" y="12" fontSize="11" fill={C_BARU}>{a.kodeManual || a.kode}</text></>}
-                      {b && <><text x="198" y="12" fontSize="11" fill={C_EKS}>{b.nomor}</text><text x="290" y="12" fontSize="11" fill={C_EKS}>{b.konsBongkar}</text></>}
+                      {a && <><text x="8" y="12" fontSize="11" fill={C_BARU}>{a.kode}</text><text x="110" y="12" fontSize="11" fill={C_BARU}>{a.sat}</text><text x="178" y="12" fontSize="11" fill={C_BARU} textAnchor="end">{a.vol}</text></>}
+                      {b && <><text x="198" y="12" fontSize="11" fill={C_EKS}>{b.kode}</text><text x="300" y="12" fontSize="11" fill={C_EKS}>{b.sat}</text><text x="368" y="12" fontSize="11" fill={C_EKS} textAnchor="end">{b.vol}</text></>}
                     </g>
                   )
                 })}

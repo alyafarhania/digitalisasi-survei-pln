@@ -3,7 +3,7 @@ import { useApp, isTajam } from '../store'
 import { Icon } from '../components/ui'
 import Empty from './Empty'
 import { Sym, LEGEND, C_BARU, C_EKS } from '../lib/symbols'
-import { RIGHT, buatSkema } from '../lib/skema'
+import { RIGHT, buatSkema, ringkasPasang } from '../lib/skema'
 import { GambarSvg } from '../lib/gambarSvg'
 import { gambarPng } from '../lib/gambarPng'
 
@@ -28,8 +28,7 @@ function Inner({ go }) {
   const onUp = () => { drag.current = null }
   const setMeta = (k) => (e) => update(p.id, (x) => ({ ...x, meta: { ...x.meta, [k]: e.target.value } }))
 
-  const pasang = pts.filter((x) => x.kodeManual || x.kode)
-  const bongkar = pts.filter((x) => x.konsBongkar)
+  const { pasang, bongkar } = ringkasPasang(p)
   const unduhPng = async () => {
     const a = document.createElement('a'); a.download = `Gambar_${p.nomor}.png`; a.href = await gambarPng(p); a.click()
   }
@@ -42,7 +41,6 @@ function Inner({ go }) {
           <button className="btn ghost" onClick={unduhPng}><Icon n="download" size={16} /> Unduh PNG</button>
           <button className="btn" onClick={() => go('rab')}>Lanjut ke RAB <Icon n="chevR" size={16} /></button>
         </div>
-        <p>Format lembar mengikuti sheet GAMBAR pada Excel. Bentuk jalur mengikuti titik di peta (utara di atas). Seret kotak konstruksi untuk menggeser manual; bagian yang sudah digeser tidak ikut berubah.</p>
       </div>
       {pts.some((x) => isTajam(p, x)) && <div className="warn"><Icon n="x" size={16} /><span>Ada sudut belokan terlalu tajam ({pts.filter((x) => isTajam(p, x)).map((x) => x.nomor).join(', ')}). Garis jalur diberi warna oranye; periksa kode konstruksi atau posisi titik.</span></div>}
       {dekat.length > 0 && <div className="warn"><Icon n="x" size={16} /><span>Titik {dekat.join(', ')} sangat berdekatan dengan titik sebelumnya di gambar. Kotak keterangannya bisa digeser manual.</span></div>}
@@ -63,10 +61,10 @@ function Inner({ go }) {
                 <td><svg width="46" height="18" viewBox="-23 -9 46 18"><Sym t={t} s="eksisting" x={0} y={0} k={0.8} /></svg></td></tr>
             ))}</tbody></table>
           <div className="gp-h">Bongkar Pasang Konstruksi :</div>
-          <table className="lg"><thead><tr><th colSpan={2} style={{ color: C_BARU }}>Pasang</th><th colSpan={2} style={{ color: C_EKS }}>Bongkar</th></tr></thead>
+          <table className="lg"><thead><tr><th colSpan={3} style={{ color: C_BARU }}>Pasang</th><th colSpan={3} style={{ color: C_EKS }}>Bongkar</th></tr></thead>
             <tbody>{Array.from({ length: Math.max(8, pasang.length, bongkar.length) }).map((_, i) => {
               const a = pasang[i], b = bongkar[i]
-              return <tr key={i}><td style={{ color: C_BARU }}>{a?.nomor}</td><td style={{ color: C_BARU }}>{a && (a.kodeManual || a.kode)}</td><td style={{ color: C_EKS }}>{b?.nomor}</td><td style={{ color: C_EKS }}>{b?.konsBongkar}</td></tr>
+              return <tr key={i}><td style={{ color: C_BARU }}>{a?.kode}</td><td style={{ color: C_BARU }}>{a?.sat}</td><td style={{ color: C_BARU }}>{a?.vol}</td><td style={{ color: C_EKS }}>{b?.kode}</td><td style={{ color: C_EKS }}>{b?.sat}</td><td style={{ color: C_EKS }}>{b?.vol}</td></tr>
             })}</tbody></table>
           <div className="gp-h">Keterangan Tambahan:</div>
           <textarea id="gKet" rows={3} value={p.meta.keterangan || ''} onChange={setMeta('keterangan')} />

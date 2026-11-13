@@ -39,7 +39,6 @@ export default function Data({ go, opt }) {
           {baru ? <button className="btn" disabled={!ok} onClick={simpan}>Simpan &amp; Lanjut ke Peta <Icon n="chevR" size={16} /></button>
             : <><button className="btn" onClick={() => go('data', 'baru')}>+ Pelanggan baru</button><button className="btn ghost" onClick={() => go('peta')}>Lanjut ke Peta <Icon n="chevR" size={16} /></button></>}
         </div>
-        <p>Isi identitas calon pelanggan dan rencana pekerjaan sebelum menandai titik survei di lapangan.{p && <> Perubahan tersimpan otomatis. Kode project: <span className="code">{p.kode}</span></>}</p>
       </div>
       <div className="card">
         <div className="card-h"><h2>Informasi pekerjaan</h2><span className="sub">Kolom bertanda <i style={{ color: '#D32F2F', fontStyle: 'normal' }}>*</i> wajib diisi</span></div>

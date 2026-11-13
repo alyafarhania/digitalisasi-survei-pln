@@ -2,6 +2,7 @@ import express from 'express'
 import compression from 'compression'
 import cors from 'cors'
 import http from 'node:http'
+import { fileURLToPath } from 'node:url'
 import crypto from 'node:crypto'
 import { Server as IOServer } from 'socket.io'
 import ExcelJS from 'exceljs'
@@ -169,47 +170,97 @@ app.get('/api/proyek/:kode/rab', wrap(async (req, res) => {
   const doc = await loadDoc(req.params.kode); if (!doc) return res.sendStatus(404)
   const d = withOpt(doc, req); res.json({ opsi: d.rabOpt, ...hitungRab(d, await rabCtx(d)) })
 }))
+const LOGO = fileURLToPath(new URL('../assets/logo-pln.png', import.meta.url))
+const BLN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 const exportXlsx = wrap(async (req, res) => {
   const doc = await loadDoc(req.params.kode); if (!doc) return res.sendStatus(404)
   const d = withOpt(doc, req), R = hitungRab(d, await rabCtx(d)), { rows } = R
-  const wb = new ExcelJS.Workbook(), g = wb.addWorksheet('GAMBAR'), r = wb.addWorksheet('RAB')
-  const bold = (row) => { row.font = { bold: true } }
-  g.addRow(['GAMBAR SKEMATIK JARINGAN']).font = { bold: true, size: 14 }; g.addRow([])
-  // Gambar skematik dikirim klien sebagai PNG; ditempel di atas tabel data.
+  const wb = new ExcelJS.Workbook(), g = wb.addWorksheet('GAMBAR', { views: [{ showGridLines: false }] }), r = wb.addWorksheet('RAB', { views: [{ showGridLines: false }] })
+
+  // ===== Sheet GAMBAR: lembar gambar (area gambar + panel keterangan) dari klien sebagai PNG, satu halaman landscape seperti contoh =====
   const png = typeof req.body?.png === 'string' && /^data:image\/png;base64,/.test(req.body.png) ? Buffer.from(req.body.png.split(',')[1], 'base64') : null
+  g.properties.defaultColWidth = 8.43
   if (png && png.length > 100) {
-    const lebar = png.readUInt32BE(16), tinggi = png.readUInt32BE(20), w = 1100, h = Math.round((tinggi * w) / lebar)
-    g.addImage(wb.addImage({ buffer: png, extension: 'png' }), { tl: { col: 0, row: 2 }, ext: { width: w, height: h } })
-    for (let i = 0; i < Math.ceil(h / 20) + 2; i++) g.addRow([])
+    const lebar = png.readUInt32BE(16), tinggi = png.readUInt32BE(20), w = 1280, h = Math.round((tinggi * w) / lebar)
+    const nRow = Math.ceil(h / 20) + 1, nCol = Math.ceil(w / 64) + 1
+    g.addImage(wb.addImage({ buffer: png, extension: 'png' }), { tl: { col: 0.1, row: 0.1 }, ext: { width: w, height: h } })
+    for (let i = 1; i <= nRow; i++) g.getRow(i).height = 15
+    g.pageSetup = { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 1, margins: { left: 0.3, right: 0.3, top: 0.3, bottom: 0.3, header: 0, footer: 0 } }
+    g.pageSetup.printArea = `A1:${g.getColumn(nCol).letter}${nRow}`
+  } else {
+    g.getCell('A1').value = 'Gambar skematik belum tersedia. Ekspor dari aplikasi (halaman Foto & Ekspor) agar gambar ikut tertempel.'
   }
-  g.addRows([['No. Gambar', d.meta?.noGambar], ['Skala', d.meta?.skala], ['Perihal', d.meta?.perihal], ['Pelanggan', d.nama], ['Lokasi', d.lokasi], []])
-  bold(g.addRow(['No', 'Nomor Tiang', 'Kode Konstruksi', 'Sudut', 'Jenis Tiang', 'Peralatan', 'Penghantar', 'Jarak dari titik sebelumnya (m)', 'Status', 'Konstruksi Lama', 'Konstruksi Bongkar', 'Lat', 'Lng']))
-  const sp = spans(d.points)
-  d.points.forEach((p, i) => g.addRow([i + 1, p.nomor, p.kodeManual || p.kode, p.sudut, p.jenisTiang, p.peralatan, p.konduktor, i ? sp[i - 1] : 0, p.kondisi, p.konsLama, p.konsBongkar, p.lat, p.lng]))
-  g.addRow([]); bold(g.addRow(['Penyeberangan']))
-  ;(d.crossings || []).forEach((c) => g.addRow([c.type, c.label, c.tinggi ? c.tinggi + ' m' : '', c.lat, c.lng]))
-  g.addRow([]); ;['digambar', 'diperiksa', 'diketahui', 'disetujui'].forEach((k) => g.addRow([k[0].toUpperCase() + k.slice(1), d.meta?.[k]]))
-  g.columns.forEach((c) => (c.width = 18))
-  r.addRow(['PT PLN (PERSERO) UP3 KLATEN']).font = { bold: true }
-  r.addRow(['RENCANA ANGGARAN BIAYA (RAB)']).font = { bold: true, size: 14 }
-  r.addRows([['PEKERJAAN', ':', `${d.jenis === 'Tambah Daya' ? 'TD' : 'PB'} ${(d.nama || '').toUpperCase()}${d.daya ? ' ' + d.daya + ' VA' : ''}`], ['LOKASI', ':', d.lokasi], ['ANGGARAN', ':', `INVESTASI TAHUN ${new Date().getFullYear()} - asal material: ${d.rabOpt.asal}`], []])
-  const hd = r.addRow(['NO', 'URAIAN', 'GOL', 'SAT', 'VOL', 'HARGA SATUAN', 'MDU', 'HARDWARE', 'JASA', 'JUMLAH'])
-  hd.font = { bold: true, color: { argb: 'FFFFFFFF' } }; hd.eachCell((c) => { c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0A5C94' } }; c.alignment = { horizontal: 'center' } })
+
+  // ===== Sheet RAB: mengikuti sheet RAB pada contoh =====
+  const thin = { style: 'thin' }, med = { style: 'medium' }
+  const kolom = [5.3, 50.7, 17.7, 8.7, 7.7, 12.7, 16.7, 16.7, 16.7, 16.7]
+  kolom.forEach((w, i) => (r.getColumn(i + 1).width = w))
+  r.getCell('B1').value = 'PT. PLN ( PERSERO )'; r.getCell('B2').value = 'UID JATENG & DIY'
+  r.getCell('B1').font = r.getCell('B2').font = { bold: true, name: 'Calibri', size: 11 }
+  r.addImage(wb.addImage({ filename: LOGO, extension: 'png' }), { tl: { col: 0.15, row: 0.15 }, ext: { width: 44, height: 21 } })
+  r.mergeCells('A5:J5'); const jd = r.getCell('A5'); jd.value = 'RENCANA ANGGARAN BIAYA (RAB)'; jd.font = { bold: true, name: 'Calibri', size: 11 }; jd.alignment = { horizontal: 'center' }
+  const kva = d.daya ? ` ${Math.round((d.daya / 1000) * 10) / 10} KVA` : ''
+  const kepala = [['PEKERJAAN', `${d.jenis === 'Tambah Daya' ? 'TD' : 'PB'}${kva} ${(d.nama || '').toUpperCase()}`], ['LOKASI', (d.meta?.ulp || d.lokasi || '').toUpperCase()], ['ANGGARAN', `INVESTASI TAHUN ${new Date().getFullYear()}`]]
+  kepala.forEach(([l, v], i) => { const n = 6 + i; r.getCell(`D${n}`).value = l; r.getCell(`E${n}`).value = ':'; r.getCell(`F${n}`).value = v; r.getCell(`D${n}`).font = r.getCell(`F${n}`).font = { bold: true, name: 'Calibri', size: 11 }; r.getCell(`E${n}`).alignment = { horizontal: 'center' } })
+  // judul tabel (3 baris, sel digabung)
+  const H0 = 11
+  const hd = (rng, t) => { r.mergeCells(rng); const c = r.getCell(rng.split(':')[0]); c.value = t; c.font = { bold: true, name: 'Calibri', size: 11 }; c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true } }
+  ;[['A', 'NO'], ['B', 'URAIAN'], ['C', 'GOL'], ['D', 'SAT'], ['E', 'VOL'], ['F', 'HARGA\nSATUAN']].forEach(([c, t]) => hd(`${c}${H0}:${c}${H0 + 2}`, t))
+  hd(`G${H0}:J${H0}`, 'BIAYA YANG DIPERLUKAN ( Rp )')
+  ;[['G', 'MDU'], ['H', 'HARDWARE'], ['I', 'JASA'], ['J', 'JUMLAH']].forEach(([c, t]) => hd(`${c}${H0 + 1}:${c}${H0 + 2}`, t))
+  for (let rr = H0; rr <= H0 + 2; rr++) for (let c = 1; c <= 10; c++) r.getCell(rr, c).border = { top: rr === H0 ? med : undefined, bottom: rr === H0 + 2 ? med : undefined, left: c === 1 ? med : thin, right: c === 10 ? med : thin }
+  r.getRow(H0).height = 15.75
+  const angka = '#,##0;-#,##0;;@'
+  const first = H0 + 3
+  let row = first
+  const tulis = (v, o = {}) => {
+    const x = r.getRow(row++)
+    v.forEach((val, i) => { const c = x.getCell(i + 1); if (val !== null && val !== undefined && val !== '') c.value = val })
+    for (let c = 1; c <= 10; c++) {
+      const cell = x.getCell(c)
+      cell.font = { name: 'Calibri', size: 11, bold: !!o.bold }
+      cell.border = { left: c === 1 ? med : thin, right: c === 10 ? med : thin }
+      cell.alignment = { horizontal: c === 2 ? 'left' : c === 5 && typeof cell.value === 'number' ? 'center' : 'center', vertical: 'middle' }
+      if (c >= 6) cell.numFmt = c === 5 ? 'General' : angka
+      if (c === 5) cell.numFmt = 'General'
+    }
+    return x
+  }
+  tulis([])
   for (const k of rows) {
-    const h = r.addRow([k.kelompok, k.judul]); h.font = { bold: true }; h.eachCell((c) => (c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE4F1FA' } }))
+    tulis([k.kelompok, k.judul]).getCell(2).font = { name: 'Calibri', size: 11 }
     let last = null, n = 0
     k.items.forEach((i, idx) => {
-      if (i.konstruksi && i.konstruksi !== last) { last = i.konstruksi; n = 0; r.addRow(['+', i.konstruksi, '', '', '', i.unit ? i.unit + ' Unit' : '']).font = { bold: true } }
-      n++; r.addRow([i.konstruksi ? n : idx + 1, i.nama, i.gol, i.sat, i.vol, i.price, i.mdu, i.hardware, i.jasa, i.total])
+      if (i.konstruksi && i.konstruksi !== last) { if (last) tulis([]); last = i.konstruksi; n = 0; tulis(['+', i.konstruksi, '', 'Unit', i.unit || '']) }
+      n++; tulis([i.konstruksi ? n : '', i.nama, i.gol, i.sat, i.vol, i.price, i.mdu, i.hardware, i.jasa, i.total])
     })
+    tulis([])
   }
-  if (R.slo) { const s = r.addRow([1, 'Sertifikasi Laik Operasi', 'JASA', 'Lot', 1, '2,5%', null, null, R.slo.jumlah, R.slo.jumlah]); s.font = { bold: true }; s.eachCell((c) => (c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF7B0' } })) }
-  const sm = (lab, v, strong) => { const x = r.addRow(['', lab + ' :', '', '', '', '', v.mdu, v.hardware, v.jasa, v.total]); x.font = { bold: true }; if (strong) x.eachCell((c) => (c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE4F1FA' } })) }
-  sm('Jumlah MDU - Hardware - Jasa', R.sub); sm(`PPN ${Math.round(R.pctPpn * 100)}%`, R.ppn); sm('Jumlah Total', R.jum, true)
-  r.addRow([]); r.addRow(['', `Terbilang : ( ${R.terbilang} )`]).font = { italic: true }
-  r.addRow(['', `Harga yang dipakai adalah ${d.rabOpt.harga} 2024`]).font = { italic: true }
-  r.columns = [{ width: 6 }, { width: 62 }, { width: 8 }, { width: 7 }, { width: 9 }, { width: 15 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 18 }]
-  for (const c of [6, 7, 8, 9, 10]) r.getColumn(c).numFmt = '#,##0'
+  if (R.slo) {
+    tulis(['', 'SLO']).getCell(2).font = { name: 'Calibri', size: 11, bold: true }
+    tulis([1, 'Sertifikasi Laik Operasi (2,5% dari jumlah)', 'JASA', 'Lot', 1, R.slo.jumlah, null, null, R.slo.jumlah, R.slo.jumlah])
+    tulis([])
+  }
+  const sm = (lab, v) => tulis(['', lab, '', '', '', ':', v.mdu, v.hardware, v.jasa, v.total])
+  const sumRow = row
+  sm('Jumlah MDU - Hardware - Jasa', R.sub); sm(`PPN ${Math.round(R.pctPpn * 100)}%`, R.ppn); sm('Jumlah Total', R.jum).font = { name: 'Calibri', size: 11, bold: true }
+  for (let c = 1; c <= 10; c++) { r.getCell(sumRow, c).border = { ...r.getCell(sumRow, c).border, top: med }; r.getCell(row - 1, c).border = { ...r.getCell(row - 1, c).border, bottom: med } }
+  const bold3 = r.getRow(row - 1); bold3.eachCell((c) => (c.font = { name: 'Calibri', size: 11, bold: true }))
+  // terbilang
+  r.mergeCells(`A${row}:J${row}`); const tb = r.getCell(`A${row}`)
+  tb.value = `Terbilang : ( ${R.terbilang} )`; tb.font = { bold: true, name: 'Calibri', size: 11 }; tb.alignment = { horizontal: 'left' }
+  for (let c = 1; c <= 10; c++) r.getCell(row, c).border = { left: c === 1 ? med : undefined, right: c === 10 ? med : undefined, bottom: med }
+  row += 2
+  r.getCell(`A${row}`).value = `Harga yang dipakai adalah ${d.rabOpt.harga} 2024`; r.getCell(`A${row}`).font = { bold: true, name: 'Calibri', size: 11 }
+  row += 2
+  const t = new Date()
+  r.mergeCells(`G${row}:J${row}`); r.getCell(`G${row}`).value = `Klaten, ${t.getDate()} ${BLN[t.getMonth()]} ${t.getFullYear()}`
+  r.mergeCells(`G${row + 1}:J${row + 1}`); r.getCell(`G${row + 1}`).value = 'Dibuat Oleh,'
+  r.mergeCells(`G${row + 5}:J${row + 5}`); r.getCell(`G${row + 5}`).value = d.meta?.digambar || ''
+  for (const n of [row, row + 1, row + 5]) { r.getCell(`G${n}`).alignment = { horizontal: 'center' }; r.getCell(`G${n}`).font = { name: 'Calibri', size: 11, bold: n === row + 5 } }
+  r.pageSetup = { orientation: 'portrait', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 } }
+  r.pageSetup.printArea = `A1:J${row + 5}`
+  r.pageSetup.printTitlesRow = `${H0}:${H0 + 2}`
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
   res.setHeader('Content-Disposition', `attachment; filename="${(d.nomor || 'project').replace(/[^\w-]+/g, '_')}.xlsx"`)
   await wb.xlsx.write(res); res.end()

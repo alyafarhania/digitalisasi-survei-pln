@@ -12,7 +12,7 @@ export default function Ekspor({ go }) {
   const foto = p.foto || []
   return (
     <>
-      <div className="pg-h"><h1>Foto &amp; Ekspor</h1><p>Lampirkan foto lokasi per pekerjaan, lalu ekspor hasil ke Excel. {p.nomor} · {p.nama}</p></div>
+      <div className="pg-h"><h1>Foto &amp; Ekspor</h1></div>
       <div className="two-col">
         <div className="card">
           <div className="card-h"><h2>Foto lokasi</h2><span className="sub">{foto.length} foto</span></div>

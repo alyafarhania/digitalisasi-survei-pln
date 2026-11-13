@@ -25,6 +25,10 @@ export const LAYERS = {
   satelit: { nama: 'Satelit', url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`, maxNative: 19, mb: 0.03,
     attr: 'Tiles © Esri — Esri, Maxar, Earthstar Geographics, dan komunitas GIS' },
 }
+// Lapisan nama tempat (jalan, kampung, kantor, sekolah, dll.) yang ditempel di atas citra satelit.
+export const LABEL = { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', maxNative: 19 }
+export const getLabelPref = () => { try { return localStorage.getItem('pln-label') !== '0' } catch { return true } }
+export const setLabelPref = (v) => { try { localStorage.setItem('pln-label', v ? '1' : '0') } catch { /* abaikan */ } }
 export const MAX_ZOOM = 21
 export const getLayerPref = () => { try { const v = localStorage.getItem('pln-layer'); return LAYERS[v] ? v : 'satelit' } catch { return 'satelit' } }
 export const setLayerPref = (v) => { try { localStorage.setItem('pln-layer', v) } catch { /* abaikan */ } }

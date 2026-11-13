@@ -52,7 +52,6 @@ export default function Proyek({ go }) {
       <div className="pg-h">
         <h1>Project Tersimpan</h1>
         <div className="actions"><button className="btn" onClick={() => go('data', 'baru')}>+ Project baru</button></div>
-        <p>Buka lewat tautan atau kode project. Salin project untuk menyimpannya sebagai versi perbaikan sebelum finalisasi.</p>
       </div>
       <div className="card" style={{ marginBottom: 14 }}>
         <form className="findbar" onSubmit={bukaKode}>

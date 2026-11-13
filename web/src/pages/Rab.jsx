@@ -23,7 +23,6 @@ function Inner({ go }) {
           {edits.length > 0 && <button className="btn ghost" onClick={() => update(p.id, (x) => ({ ...x, priceEdits: {} }))}><Icon n="undo" size={16} /> Kembalikan {edits.length} harga</button>}
           <button className="btn" onClick={() => go('ekspor')}>Ekspor Excel <Icon n="chevR" size={16} /></button>
         </div>
-        <p>Format mengikuti sheet RAB pada Excel. Item tanpa harga KHS 2024 dibiarkan kosong, RAB tetap bisa diekspor.</p>
       </div>
       <div className="card" style={{ marginBottom: 14 }}>
         <div className="card-b grid g2 g3">

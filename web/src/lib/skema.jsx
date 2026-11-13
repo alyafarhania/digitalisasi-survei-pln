@@ -15,6 +15,16 @@ export const boxLines = (p) => {
   if (p.peralatan) l.push(p.peralatan.length > 15 ? p.peralatan.slice(0, 14) + '…' : p.peralatan)
   return l
 }
+// Ringkasan Pasang / Bongkar per kode (urut kemunculan), seperti tabel "Bongkar Pasang Konstruksi" pada contoh Excel
+export const ringkasPasang = (p) => {
+  const hitung = (daftar) => { const m = new Map(); daftar.forEach(([k, sat]) => { if (!k) return; const e = m.get(k) || { kode: k, sat, vol: 0 }; e.vol++; m.set(k, e) }); return [...m.values()] }
+  const pts = p.points
+  const pasang = [
+    ...hitung(pts.filter((x) => (x.jenisTitik || 'Tiang') === 'Tiang').map((x) => [tiangCode(x).replace(/^1/, ''), 'Btg'])),
+    ...hitung(pts.map((x) => [x.kodeManual || x.kode, 'Unit'])),
+  ]
+  return { pasang, bongkar: hitung(pts.map((x) => [x.konsBongkar, 'Unit'])) }
+}
 export const shortKond = (s = '') => s.split(' ')[0]
 const unit = (dx, dy) => { const l = Math.hypot(dx, dy) || 1; return { x: dx / l, y: dy / l } }
 const rot = (v, deg) => { const a = (deg * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a); return { x: v.x * c - v.y * s, y: v.x * s + v.y * c } }

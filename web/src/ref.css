@@ -6,7 +6,7 @@ body{font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;line-height
 .rapp{min-height:100%;display:flex;flex-direction:column}
 
 /* Header */
-.rhdr{position:sticky;top:0;z-index:50;height:var(--hdr);display:flex;align-items:center;gap:14px;padding:0 16px;background:linear-gradient(100deg,var(--b900),var(--b700));color:#fff;border-bottom:3px solid var(--yel);flex:none}
+.rhdr{position:sticky;top:0;z-index:2000;height:var(--hdr);display:flex;align-items:center;gap:14px;padding:0 16px;background:linear-gradient(100deg,var(--b900),var(--b700));color:#fff;border-bottom:3px solid var(--yel);flex:none}
 .rbrand{display:flex;align-items:center;gap:12px;min-width:0}
 .rbrand img{height:40px;width:auto;display:block;flex:none}
 .rbrand-t{min-width:0;line-height:1.15}.rbrand-t b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rbrand-t span{font-size:11.5px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
@@ -65,7 +65,7 @@ body{font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;line-height
 
 /* Peta */
 .split{display:grid;gap:14px;grid-template-columns:1fr}.split>*{min-width:0}
-.rmap{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--ln);background:#E6EDF2;height:min(62vh,560px);min-height:340px}
+.rmap{position:relative;z-index:0;isolation:isolate;border-radius:10px;overflow:hidden;border:1px solid var(--ln);background:#E6EDF2;height:min(62vh,560px);min-height:340px}
 .rmap .map{position:absolute;inset:0}
 .map-top{position:absolute;top:10px;left:10px;right:10px;display:flex;gap:8px;z-index:500;pointer-events:none;flex-wrap:wrap}.map-top>*{pointer-events:auto}
 .msearch{flex:1 1 220px;position:relative;margin:0}
@@ -208,7 +208,7 @@ body{font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;line-height
 .slo-t{margin-left:auto;font-size:12px;color:var(--mu);display:flex;align-items:center;gap:6px}
 
 /* Peta selebar halaman; panel atribut hanya muncul (melayang di kanan peta) saat sebuah titik diketuk */
-.mapstage{position:relative}
+.mapstage{position:relative;z-index:0;isolation:isolate}
 .atr-x{position:absolute;right:8px;top:8px;z-index:3;width:30px;height:30px;border-radius:50%;border:1px solid var(--ln);background:#fff;display:grid;place-items:center;cursor:pointer;color:var(--b900)}
 @media(min-width:1024px){
   .rmain .split{grid-template-columns:minmax(0,1fr)}
@@ -216,3 +216,8 @@ body{font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;line-height
   .mapstage>.atr-float{position:absolute;right:10px;top:62px;bottom:10px;width:min(390px,calc(100% - 20px));z-index:800;overflow:auto;background:#fff;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.28)}
   .mapstage>.atr-float .card{border:0;box-shadow:none;margin:0}
 }
+
+/* Pin merah hasil pencarian */
+.pin-wrap{background:none;border:0}
+.pin-cari{position:relative;width:32px;height:42px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}
+.pin-cari span{position:absolute;left:38px;top:6px;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis;background:#fff;color:#111;font:600 12px/1.2 system-ui,sans-serif;padding:3px 7px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.35)}

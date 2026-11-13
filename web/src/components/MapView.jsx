@@ -19,7 +19,7 @@ import 'leaflet/dist/leaflet.css'
 import { Icon } from './ui'
 import { isTajam } from '../store'
 import { Sym, colorOf, symOfPoint, statusOf, lineSymOf } from '../lib/symbols'
-import { getTile, LAYERS, MAX_ZOOM, getLayerPref, setLayerPref } from '../lib/offlineTiles'
+import { getTile, LAYERS, LABEL, MAX_ZOOM, getLayerPref, setLayerPref, getLabelPref, setLabelPref } from '../lib/offlineTiles'
 
 const WARN = '#FF8A00'
 
@@ -54,6 +54,25 @@ function OfflineTiles({ layerKey }) {
   return null
 }
 
+// Nama tempat di atas satelit (butuh internet; tidak ikut diunduh offline)
+function Labels({ on }) {
+  const map = useMap()
+  useEffect(() => {
+    if (!on || DEMO) return
+    const layer = L.tileLayer(LABEL.url, { maxZoom: MAX_ZOOM, maxNativeZoom: LABEL.maxNative, zIndex: 5, attribution: 'Labels © Esri' })
+    layer.addTo(map)
+    return () => { map.removeLayer(layer) }
+  }, [map, on])
+  return null
+}
+
+// Pin merah hasil pencarian lokasi
+const pinIcon = (nama) => L.divIcon({
+  className: 'pin-wrap',
+  html: `<div class="pin-cari"><svg width="32" height="42" viewBox="0 0 32 42"><path d="M16 0C7.2 0 0 7 0 15.6 0 27 16 42 16 42s16-15 16-26.4C32 7 24.8 0 16 0z" fill="#E11D2E" stroke="#fff" stroke-width="2"/><circle cx="16" cy="15.5" r="5.5" fill="#fff"/></svg>${nama ? `<span>${nama.replace(/[<>&]/g, '')}</span>` : ''}</div>`,
+  iconSize: [32, 42], iconAnchor: [16, 42],
+})
+
 const poleIcon = (p, sel) => {
   const c = colorOf(p.kondisi)
   const svg = renderToStaticMarkup(<svg width="34" height="34" viewBox="-17 -17 34 34"><Sym t={symOfPoint(p)} s={statusOf(p.kondisi)} k={1.25} /></svg>)
@@ -79,12 +98,13 @@ function AutoSize() {
   return null
 }
 function Bridge({ mapRef }) { mapRef.current = useMap(); return null }
-function LayerSwitch({ value, onChange }) {
+function LayerSwitch({ value, onChange, label, onLabel }) {
   return (
     <div className="map-layer" role="group" aria-label="Tampilan peta">
       {Object.entries(LAYERS).map(([k, l]) => (
         <button key={k} className={value === k ? 'on' : ''} onClick={() => onChange(k)}>{l.nama}</button>
       ))}
+      {value === 'satelit' && <button className={label ? 'on' : ''} onClick={() => onLabel(!label)} title="Tampilkan nama tempat di atas satelit">Nama tempat</button>}
     </div>
   )
 }
@@ -98,7 +118,9 @@ function Zoom() {
   )
 }
 
-export default function MapView({ project, selected, onSelect, mode, running, onAddPoint, onAddCross, onDelete, onMove, fly, gpsPos, areaCircle, mapRef }) {
+export default function MapView({ project, selected, onSelect, mode, running, onAddPoint, onAddCross, onDelete, onMove, fly, gpsPos, areaCircle, mapRef, pin }) {
+  const [label, setLabel] = useState(getLabelPref)
+  const pilihLabel = (v) => { setLabel(v); setLabelPref(v) }
   const [layerKey, setLayerKey] = useState(getLayerPref)
   const pilihLayer = (k) => { setLayerKey(k); setLayerPref(k) }
   const pts = project.points
@@ -112,7 +134,8 @@ export default function MapView({ project, selected, onSelect, mode, running, on
     <MapContainer center={center} zoom={17} maxZoom={MAX_ZOOM} zoomControl={false} className="map">
       <OfflineTiles layerKey={layerKey} />
       <AutoSize />
-      <LayerSwitch value={layerKey} onChange={pilihLayer} />
+      <Labels on={layerKey === 'satelit' && label} />
+      <LayerSwitch value={layerKey} onChange={pilihLayer} label={label} onLabel={pilihLabel} />
       <Bridge mapRef={mapRef} />
       <Clicker onMap={onMap} />
       <Fly target={fly} />
@@ -133,6 +156,7 @@ export default function MapView({ project, selected, onSelect, mode, running, on
       {project.crossings.map((c) => (
         <Marker key={c.id} position={[c.lat, c.lng]} icon={crossIcon(c.type)} draggable={!!onMove} eventHandlers={{ click: () => mode === 'hapus' && onDelete(c.id, true), dragend: (e) => onMove && onMove(c.id, e.target.getLatLng(), true) }} />
       ))}
+      {pin && <Marker position={[pin.lat, pin.lng]} icon={pinIcon(pin.nama)} zIndexOffset={1000} />}
       {gpsPos && <CircleMarker center={[gpsPos.lat, gpsPos.lng]} radius={8} pathOptions={{ color: '#fff', weight: 3, fillColor: '#0B6AA6', fillOpacity: 1 }} />}
     </MapContainer>
   )
