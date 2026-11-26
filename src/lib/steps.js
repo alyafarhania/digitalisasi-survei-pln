@@ -56,11 +56,12 @@ export function stepGuide(key, p) {
       A('nomor', 'Nomor pekerjaan', has(p?.nomor)), A('alamat', 'Alamat / lokasi pekerjaan', has(p?.lokasi)),
       A('daya', 'Golongan tarif dan daya', p?.daya > 0), A('feeder', 'Feeder, gardu induk, sub sistem', has(m.feeder) || has(m.gi) || has(m.subsistem), { opsional: true }),
     ] },
-    peta: { title: 'Tandai jalur di peta', intro: 'Tandai tiang satu per satu dari sumber listrik ke lokasi pelanggan.', tip: 'Tidak ada sinyal? Unduh area peta dulu lewat tombol Peta offline.', items: [
+    peta: { title: 'Tandai jalur di peta', intro: 'Tandai tiang satu per satu dari sumber listrik ke lokasi pelanggan.', tip: 'Tidak ada sinyal? Unduh area peta, atau unggah peta offline (mis. Satplant) dari galeri lewat tombol di atas peta.', items: [
       M('mulai', 'Cari lokasi atau pakai GPS, lalu tekan Mulai', { opsional: true }),
       A('titik', 'Ketuk peta untuk menaruh titik tiang (minimal 2)', n >= 2),
       A('atribut', 'Isi jenis tiang dan konduktor tiap titik', n > 0 && pts.every((x) => x.jenisTiang && x.konduktor)),
       A('nomor', 'Beri nomor tiang tiap titik', n > 0 && pts.every((x) => x.nomor)),
+      M('jtr', 'Tambah konstruksi JTR pada tiang eksisting bila ada (satu titik bisa banyak konstruksi)', { opsional: true }),
       A('sudut', 'Tidak ada belokan tajam (sudut dalam < 90°)', n > 0 && tajam === 0),
       M('silang', 'Tandai jalan, sungai, atau SUTT yang disilang', { opsional: true }),
       M('selesai', 'Tekan Selesai bila tagging sudah lengkap'),

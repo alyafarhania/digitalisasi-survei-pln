@@ -26,7 +26,10 @@ export function recompute(project) {
     const sudut = deflection(a[i - 1], p, a[i + 1])
     return { ...p, sudut, kode: pickKode(sudut, project.jalur) }
   })
-  return { ...project, points: pts }
+  // jalur pembongkaran (ungu): rantai titik sendiri, hanya sudutnya yang dihitung (tidak ada konstruksi baru otomatis)
+  if (!project.pointsBongkar) return { ...project, points: pts }
+  const ptsB = project.pointsBongkar.map((p, i, a) => ({ ...p, sudut: deflection(a[i - 1], p, a[i + 1]) }))
+  return { ...project, points: pts, pointsBongkar: ptsB }
 }
 export const isTajam = isTajamPoint
 export const linkOf = (p) => `${location.origin}/project/${p.kode}/data`
@@ -142,7 +145,7 @@ export function Provider({ children }) {
       if (!can(userRef.current, 'project:create')) return null
       const id = crypto.randomUUID(), n = state.projects.length + 1, now = new Date().toISOString(), by = actorOf(userRef.current)
       const p = { id, kode: randKode(), version: 0, dirty: true, localAt: Date.now(), nomor: `${data.jenis === 'Tambah Daya' ? 'TD' : 'PB'}-2026-${String(n).padStart(3, '0')}`,
-        status: 'Draft', tanggal: now.slice(0, 10), points: [], crossings: [], jalur: 'KONSTRUKSI JTM 3 FASA PADA TIANG BETON',
+        status: 'Draft', tanggal: now.slice(0, 10), points: [], pointsBongkar: [], crossings: [], jalur: 'KONSTRUKSI JTM 3 FASA PADA TIANG BETON',
         meta: { noGambar: '', skala: '1 : 500', perihal: data.jenis, digambar: '', diperiksa: '', diketahui: '', disetujui: '' },
         rabOpt: { harga: 'HSS', jenis: 'Total', asal: 'Gudang UP3', slo: true }, priceEdits: {}, labelPos: {}, foto: [], guide: {},
         createdBy: by, createdAt: now, lastEditedBy: by, lastEditedAt: now, audit: [auditEntry('created', userRef.current)], ...data }
@@ -160,7 +163,7 @@ export function Provider({ children }) {
       if (src.version && navigator.onLine && !src.dirty) { try { const d = await api.post(`/api/proyek/${src.kode}/salin`, { by, at: now }); await openRemote(d.kode); return } catch { /* turun ke salin lokal */ } }
       const nid = crypto.randomUUID()
       const c = { ...JSON.parse(JSON.stringify(src)), id: nid, kode: randKode(), version: 0, dirty: true, localAt: Date.now(), nomor: (src.nomor || '') + '-SALIN', status: 'Draft', nama: src.nama + ' (salinan)',
-        points: src.points.map((p) => ({ ...p, id: crypto.randomUUID() })), foto: [], guide: {}, createdBy: by, createdAt: now, lastEditedBy: by, lastEditedAt: now, finalizedBy: undefined, finalizedAt: undefined, audit: jejak }
+        points: src.points.map((p) => ({ ...p, id: crypto.randomUUID() })), pointsBongkar: (src.pointsBongkar || []).map((p) => ({ ...p, id: crypto.randomUUID() })), foto: [], guide: {}, createdBy: by, createdAt: now, lastEditedBy: by, lastEditedAt: now, finalizedBy: undefined, finalizedAt: undefined, audit: jejak }
       setState((s) => ({ ...s, activeId: nid, projects: [c, ...s.projects] })); schedule(nid)
     },
     remove: async (id) => {

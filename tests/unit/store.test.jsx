@@ -28,7 +28,7 @@ describe('store: membuat project + audit', () => {
     expect(p.nomor).toMatch(/^PB-2026-001$/); expect(p.rabOpt.slo).toBe(true)
   })
   it('jenis Tambah Daya diberi awalan TD', async () => { const h = await boot('u-surveyor'); let k; act(() => { k = h.result.current.add({ ...data, jenis: 'Tambah Daya' }) }); expect(sel(h, k).nomor).toMatch(/^TD-/) })
-  it('manajer tidak boleh membuat project', async () => { const h = await boot('u-manajer'); let k = 'x'; act(() => { k = h.result.current.add(data) }); expect(k).toBeNull(); expect(h.result.current.state.projects).toHaveLength(0) })
+  it('asman/MULP tidak boleh membuat project', async () => { const h = await boot('u-asman'); let k = 'x'; act(() => { k = h.result.current.add(data) }); expect(k).toBeNull(); expect(h.result.current.state.projects).toHaveLength(0) })
   it('project contoh dicatat dibuat oleh pengguna', async () => { const h = await boot('u-surveyor'); let k; act(() => { k = h.result.current.addDemo() }); expect(sel(h, k).audit[0]).toMatchObject({ action: 'created', note: 'Project contoh' }) })
 })
 describe('store: mengubah project (izin + terakhir diubah)', () => {
@@ -44,9 +44,8 @@ describe('store: mengubah project (izin + terakhir diubah)', () => {
     expect(sel(h, k).points[1]).toMatchObject({ sudut: 0, kode: 'CC1' })
   })
   it('surveyor lain TIDAK boleh mengubah project orang lain', async () => { seedDb(); const h = await boot('u-surveyor2'); act(() => h.result.current.update(h.result.current.state.projects[0].id, { nama: 'Diubah paksa' })); expect(h.result.current.state.projects[0].nama).toBe('Lama') })
-  it('manajer tidak boleh mengubah', async () => { seedDb(); const h = await boot('u-manajer'); act(() => h.result.current.update(h.result.current.state.projects[0].id, { nama: 'X' })); expect(h.result.current.state.projects[0].nama).toBe('Lama') })
-  it('perencana boleh mengubah project siapa pun', async () => { seedDb(); const h = await boot('u-perencana'); act(() => h.result.current.update(h.result.current.state.projects[0].id, { nama: 'Diubah perencana' })); expect(h.result.current.state.projects[0]).toMatchObject({ nama: 'Diubah perencana', lastEditedBy: { id: 'u-perencana' } }) })
-  it('project Final terkunci, juga untuk admin', async () => { seedDb({ status: 'Selesai' }); const h = await boot('u-admin'); act(() => h.result.current.update(h.result.current.state.projects[0].id, { nama: 'X' })); expect(h.result.current.state.projects[0].nama).toBe('Lama') })
+  it('asman/MULP boleh mengubah project siapa pun', async () => { seedDb(); const h = await boot('u-asman'); act(() => h.result.current.update(h.result.current.state.projects[0].id, { nama: 'Diubah perencana' })); expect(h.result.current.state.projects[0]).toMatchObject({ nama: 'Diubah perencana', lastEditedBy: { id: 'u-asman' } }) })
+  it('project Final terkunci, juga untuk asman/MULP', async () => { seedDb({ status: 'Selesai' }); const h = await boot('u-asman'); act(() => h.result.current.update(h.result.current.state.projects[0].id, { nama: 'X' })); expect(h.result.current.state.projects[0].nama).toBe('Lama') })
   it('centang panduan manual dan penandaan otomatis', async () => {
     const h = await boot('u-surveyor'); let k; act(() => { k = h.result.current.add(data) }); const id = sel(h, k).id
     act(() => h.result.current.toggleGuide(id, 'peta:selesai')); expect(sel(h, k).guide['peta:selesai']).toBe(true)
@@ -55,25 +54,24 @@ describe('store: mengubah project (izin + terakhir diubah)', () => {
   })
 })
 describe('store: finalisasi, buka kembali, hapus, salin (diaudit)', () => {
-  it('perencana memfinalisasi: status, pelaku, waktu, dan audit', async () => {
-    seedDb(); const h = await boot('u-perencana'); const id = h.result.current.state.projects[0].id; let ok; act(() => { ok = h.result.current.finalize(id) })
+  it('asman/MULP memfinalisasi: status, pelaku, waktu, dan audit', async () => {
+    seedDb(); const h = await boot('u-asman'); const id = h.result.current.state.projects[0].id; let ok; act(() => { ok = h.result.current.finalize(id) })
     const p = h.result.current.state.projects[0]; expect(ok).toBe(true)
-    expect(p).toMatchObject({ status: 'Selesai', finalizedBy: { id: 'u-perencana', name: 'Bagus Prasetyo' } }); expect(p.finalizedAt).toBeTruthy(); expect(p.audit.at(-1)).toMatchObject({ action: 'finalized', by: { id: 'u-perencana' } })
+    expect(p).toMatchObject({ status: 'Selesai', finalizedBy: { id: 'u-asman', name: 'Bagus Prasetyo' } }); expect(p.finalizedAt).toBeTruthy(); expect(p.audit.at(-1)).toMatchObject({ action: 'finalized', by: { id: 'u-asman' } })
   })
   it('surveyor TIDAK boleh memfinalisasi', async () => { seedDb(); const h = await boot('u-surveyor'); let ok; act(() => { ok = h.result.current.finalize(h.result.current.state.projects[0].id) }); expect(ok).toBe(false); expect(h.result.current.state.projects[0].status).toBe('Draft') })
-  it('finalisasi dua kali tidak menggandakan audit', async () => { seedDb(); const h = await boot('u-admin'); const id = h.result.current.state.projects[0].id; act(() => { h.result.current.finalize(id) }); act(() => { h.result.current.finalize(id) }); expect(h.result.current.state.projects[0].audit.filter((a) => a.action === 'finalized')).toHaveLength(1) })
+  it('finalisasi dua kali tidak menggandakan audit', async () => { seedDb(); const h = await boot('u-asman'); const id = h.result.current.state.projects[0].id; act(() => { h.result.current.finalize(id) }); act(() => { h.result.current.finalize(id) }); expect(h.result.current.state.projects[0].audit.filter((a) => a.action === 'finalized')).toHaveLength(1) })
   it('buka kembali: kembali Draft, jejak final dibersihkan, audit "reopened" ditambah', async () => {
     seedDb({ status: 'Selesai', finalizedBy: { id: 'x', name: 'X' }, finalizedAt: '2026-01-02T00:00:00Z', audit: [{ id: '1', action: 'finalized', by: { id: 'x' }, at: '2026-01-02T00:00:00Z' }] })
-    const h = await boot('u-perencana'); act(() => { h.result.current.reopen(h.result.current.state.projects[0].id) }); const p = h.result.current.state.projects[0]
+    const h = await boot('u-asman'); act(() => { h.result.current.reopen(h.result.current.state.projects[0].id) }); const p = h.result.current.state.projects[0]
     expect(p.status).toBe('Draft'); expect(p.finalizedBy).toBeUndefined(); expect(p.audit.map((a) => a.action)).toEqual(['finalized', 'reopened'])
   })
   it('surveyor tidak boleh membuka kembali', async () => { seedDb({ status: 'Selesai' }); const h = await boot('u-surveyor'); let ok; act(() => { ok = h.result.current.reopen(h.result.current.state.projects[0].id) }); expect(ok).toBe(false) })
-  it('admin menghapus project mana pun', async () => { seedDb(); const h = await boot('u-admin'); let ok; await act(async () => { ok = await h.result.current.remove(h.result.current.state.projects[0].id) }); expect(ok).toBe(true); expect(h.result.current.state.projects).toHaveLength(0) })
+  it('asman/MULP tidak boleh menghapus (hanya surveyor pemilik draft)', async () => { seedDb(); const h = await boot('u-asman'); let ok; await act(async () => { ok = await h.result.current.remove(h.result.current.state.projects[0].id) }); expect(ok).toBe(false); expect(h.result.current.state.projects).toHaveLength(1) })
   it('surveyor menghapus draft sendiri, tapi tidak milik orang lain', async () => {
     seedDb(); const a = await boot('u-surveyor2'); let ok; await act(async () => { ok = await a.result.current.remove(a.result.current.state.projects[0].id) }); expect(ok).toBe(false); expect(a.result.current.state.projects).toHaveLength(1); a.unmount()
     const b = await boot('u-surveyor'); await act(async () => { ok = await b.result.current.remove(b.result.current.state.projects[0].id) }); expect(ok).toBe(true)
   })
-  it('perencana tidak boleh menghapus', async () => { seedDb(); const h = await boot('u-perencana'); let ok; await act(async () => { ok = await h.result.current.remove(h.result.current.state.projects[0].id) }); expect(ok).toBe(false) })
   it('salin: pembuat = penyalin, Draft, audit "copied" berisi nomor asal, tanpa jejak final', async () => {
     seedDb({ status: 'Selesai', finalizedBy: { id: 'x', name: 'X' } }); const h = await boot('u-surveyor2')
     await act(async () => { await h.result.current.copy(h.result.current.state.projects[0].id) }); const c = h.result.current.state.projects.find((p) => p.nama.endsWith('(salinan)'))

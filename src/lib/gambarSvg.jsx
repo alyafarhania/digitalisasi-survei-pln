@@ -1,19 +1,23 @@
-import { LEGEND, Sym, C_BARU, C_EKS } from './symbols'
+import { LEGEND, Sym, C_BARU, C_EKS, C_BONGKAR } from './symbols'
 import { RIGHT, buatSkema, SkemaIsi, ringkasPasang } from './skema'
 
 export const W = 1280, VW = RIGHT - 10
+// Dua jalur pada legenda: pemasangan konstruksi baru (merah) dan pembongkaran konstruksi lama (ungu)
+export const JALUR_LEGEND = [['Jalur Pasang (Merah)', C_BARU], ['Jalur Bongkar (Ungu)', C_BONGKAR]]
 
 // Seluruh lembar gambar (area gambar + panel kanan). untukFile = true: lebar penuh 1280 agar panel kanan ikut (PNG / Excel).
-export function GambarSvg({ p, sk: skIn, svgRef, onDown, onMove, onUp, untukFile }) {
+// bgUrl = alamat/data URL gambar peta offline unggahan (latar gambar konstruksi), bila project memakainya.
+export function GambarSvg({ p, sk: skIn, svgRef, onDown, onMove, onUp, untukFile, bgUrl }) {
   const sk = skIn || buatSkema(p), pts = p.points, H = sk.H
   const { pasang, bongkar } = ringkasPasang(p)
   const bRows = Math.max(12, pasang.length, bongkar.length)
-  const bY = 345, bBottom = Math.min(bY + 24 + bRows * 16, H - 215)
+  const bY = 82 + (LEGEND.length + JALUR_LEGEND.length) * 19 + 16, bBottom = Math.min(bY + 24 + bRows * 16, H - 215)
   const nRows = Math.floor((bBottom - bY - 24) / 16)
   const first = pts[0]
   return (
     <svg ref={svgRef} xmlns="http://www.w3.org/2000/svg" viewBox={`0 0 ${untukFile ? W : VW} ${H}`} {...(untukFile ? { width: W, height: H } : { style: { width: '100%', minWidth: 640, display: 'block' } })} fontFamily="Calibri, Arial, sans-serif" onPointerMove={onMove} onPointerUp={onUp}>
               <rect width={W} height={H} fill="#fff" />
+              {sk.bg && bgUrl && <g data-xl="Peta offline (latar)"><image href={bgUrl} x={sk.bg.x} y={sk.bg.y} width={sk.bg.w} height={sk.bg.h} preserveAspectRatio="none" /><rect x={sk.bg.x} y={sk.bg.y} width={sk.bg.w} height={sk.bg.h} fill="none" stroke="#9AA5B1" strokeWidth="0.8" /></g>}
               <rect x="3" y="3" width={W - 6} height={H - 6} fill="none" stroke="#222" strokeWidth="1.5" />
               <image href="/kompas.jpg" x="10" y="10" width="62" height="64" />
               {first && <text x="440" y="36" textAnchor="middle" fontSize="19">KOORDINAT {first.lat.toFixed(6)}, {first.lng.toFixed(6)}</text>}
@@ -29,12 +33,22 @@ export function GambarSvg({ p, sk: skIn, svgRef, onDown, onMove, onUp, untukFile
                 <rect x={RIGHT} y="62" width="380" height="20" fill="#E8F3FA" stroke="#222" />
                 {[['No', 18], ['Nama Material', 120], ['Baru', 252], ['Eksisting', 326]].map(([t, x]) => <text key={t} x={RIGHT + x} y="76" textAnchor="middle">{t}</text>)}
                 {LEGEND.map(([nama, t], i) => (
-                  <g key={t} transform={`translate(${RIGHT},${82 + i * 19})`}>
+                  <g key={t} data-xl={`Legenda ${nama}`} transform={`translate(${RIGHT},${82 + i * 19})`}>
                     <rect width="380" height="19" fill="#fff" stroke="#222" strokeWidth="0.7" />
                     <text x="18" y="13" textAnchor="middle">{i + 1}</text><text x="120" y="13" textAnchor="middle">{nama}</text>
-                    <Sym t={t} s="baru" x={252} y={9.5} k={0.8} /><Sym t={t} s="eksisting" x={326} y={9.5} k={0.8} />
+                    <Sym t={t} s="baru" x={252} y={9.5} k={0.8} n={`Simbol ${nama} (baru)`} /><Sym t={t} s="eksisting" x={326} y={9.5} k={0.8} n={`Simbol ${nama} (eksisting)`} />
                   </g>
                 ))}
+                {JALUR_LEGEND.map(([nama, warna], j) => {
+                  const i = LEGEND.length + j
+                  return (
+                    <g key={nama} data-xl={`Legenda ${nama}`} transform={`translate(${RIGHT},${82 + i * 19})`}>
+                      <rect width="380" height="19" fill="#fff" stroke="#222" strokeWidth="0.7" />
+                      <text x="18" y="13" textAnchor="middle">{i + 1}</text><text x="120" y="13" textAnchor="middle">{nama}</text>
+                      <line data-xl={`Garis ${nama}`} x1="252" y1="9.5" x2="326" y2="9.5" stroke={warna} strokeWidth="2.4" />
+                    </g>
+                  )
+                })}
                 <text x={RIGHT + 4} y={bY - 6} fontWeight="700">Bongkar Pasang Konstruksi :</text>
                 <rect x={RIGHT} y={bY} width="380" height="20" fill="#fff" stroke="#222" />
                 <text x={RIGHT + 95} y={bY + 14} textAnchor="middle" fontWeight="700" fill={C_BARU}>Pasang</text>

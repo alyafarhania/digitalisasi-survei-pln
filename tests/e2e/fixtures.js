@@ -1,11 +1,9 @@
 import { test as base, expect } from '@playwright/test'
 
 export const USERS = {
-  admin: { id: 'u-admin', email: 'admin@pln.test', password: 'admin123', name: 'Dewi Kartika', role: 'admin', label: 'Admin UP3' },
-  perencana: { id: 'u-perencana', email: 'perencana@pln.test', password: 'perencana123', name: 'Bagus Prasetyo', role: 'perencana', label: 'Perencana' },
+  asman: { id: 'u-asman', email: 'asman@pln.test', password: 'asman123', name: 'Bagus Prasetyo', role: 'asman', label: 'Asman/MULP' },
   surveyor: { id: 'u-surveyor', email: 'surveyor@pln.test', password: 'surveyor123', name: 'Agus Santoso', role: 'surveyor', label: 'Surveyor' },
   surveyor2: { id: 'u-surveyor2', email: 'surveyor2@pln.test', password: 'surveyor123', name: 'Siti Rahmawati', role: 'surveyor', label: 'Surveyor' },
-  manajer: { id: 'u-manajer', email: 'manajer@pln.test', password: 'manajer123', name: 'Hendra Wijaya', role: 'manajer', label: 'Manajer' },
 }
 const actor = (u) => ({ id: u.id, name: u.name, role: u.role })
 
@@ -27,7 +25,7 @@ export function projectDoc(o = {}) {
 export const test = base.extend({
   // peta/pencarian eksternal dimatikan agar uji cepat, stabil, dan tidak butuh internet
   page: async ({ page }, use) => {
-    await page.route(/(arcgisonline|openstreetmap|overpass|nominatim)/, (r) => r.abort())
+    await page.route(/(arcgisonline|openstreetmap|cartocdn|overpass|nominatim)/, (r) => r.abort())
     await use(page)
   },
 })

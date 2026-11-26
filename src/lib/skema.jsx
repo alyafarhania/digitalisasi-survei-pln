@@ -1,20 +1,32 @@
 import { spans } from './rab'
 import { isTajam } from '../store'
-import { Sym, C_EKS, colorOf, statusOf, equipSym, tiangSym, lineSymOf } from './symbols'
+import { keGambar, petaAktif } from './petaOffline'
+import { Sym, C_BARU, C_EKS, C_BONGKAR, colorOf, statusOf, equipSym, tiangSym, lineSymOf } from './symbols'
 
 export const RIGHT = 890, WARN = '#FF8A00', BOX_W = 104, MX = 120, MY = 120
+// Jalur pembongkaran (ungu) digambar sejajar jalur pemasangan (merah), digeser OFF_B satuan gambar ke atas agar keduanya terlihat
+export const OFF_B = 22
 export const tiangCode = (p) => {
   const m = /Tiang (Beton|Besi) (\d+)M-(\d+)/i.exec(p.jenisTiang || '')
   return m ? `1${/besi/i.test(m[1]) ? 'S' : 'C'}${m[2]}-${m[3]}` : ''
 }
-export const boxLines = (p) => {
+// Baris isi kotak keterangan. baru = true: konstruksi baru tambahan (digambar merah walau tiangnya eksisting).
+export const boxRows = (p, bongkar) => {
   const l = []
-  if ((p.jenisTitik || 'Tiang') === 'Tiang' && tiangCode(p)) l.push(tiangCode(p))
+  if (bongkar) { // titik jalur pembongkaran: tiang yang dibongkar + konstruksi lamanya
+    if ((p.jenisTitik || 'Tiang') === 'Tiang' && tiangCode(p)) l.push({ t: tiangCode(p), bongkar: true })
+    if (p.konsBongkar) l.push({ t: `1${p.konsBongkar}`, bongkar: true })
+    if (p.peralatan) l.push({ t: p.peralatan.length > 15 ? p.peralatan.slice(0, 14) + '…' : p.peralatan, bongkar: true })
+    return l
+  }
+  if ((p.jenisTitik || 'Tiang') === 'Tiang' && tiangCode(p)) l.push({ t: tiangCode(p) })
   const k = p.kodeManual || p.kode
-  if (k) l.push(`1${k}`)
-  if (p.peralatan) l.push(p.peralatan.length > 15 ? p.peralatan.slice(0, 14) + '…' : p.peralatan)
+  if (k) l.push({ t: `1${k}` })
+  ;(p.konsBaru || []).forEach((x) => x.kode && l.push({ t: `1${x.kode}`, baru: true }))
+  if (p.peralatan) l.push({ t: p.peralatan.length > 15 ? p.peralatan.slice(0, 14) + '…' : p.peralatan })
   return l
 }
+export const boxLines = (p, bongkar) => boxRows(p, bongkar).map((r) => r.t)
 // Ringkasan Pasang / Bongkar per kode (urut kemunculan), seperti tabel "Bongkar Pasang Konstruksi" pada contoh Excel
 export const ringkasPasang = (p) => {
   const hitung = (daftar) => { const m = new Map(); daftar.forEach(([k, sat]) => { if (!k) return; const e = m.get(k) || { kode: k, sat, vol: 0 }; e.vol++; m.set(k, e) }); return [...m.values()] }
@@ -22,8 +34,14 @@ export const ringkasPasang = (p) => {
   const pasang = [
     ...hitung(pts.filter((x) => (x.jenisTitik || 'Tiang') === 'Tiang').map((x) => [tiangCode(x).replace(/^1/, ''), 'Btg'])),
     ...hitung(pts.map((x) => [x.kodeManual || x.kode, 'Unit'])),
+    ...hitung(pts.flatMap((x) => (x.konsBaru || []).map((k) => [k.kode, 'Unit']))),
   ]
-  return { pasang, bongkar: hitung(pts.map((x) => [x.konsBongkar, 'Unit'])) }
+  const ptsB = p.pointsBongkar || []
+  const bongkar = [
+    ...hitung(ptsB.filter((x) => (x.jenisTitik || 'Tiang') === 'Tiang').map((x) => [tiangCode(x).replace(/^1/, ''), 'Btg'])),
+    ...hitung([...pts, ...ptsB].map((x) => [x.konsBongkar, 'Unit'])),
+  ]
+  return { pasang, bongkar }
 }
 export const shortKond = (s = '') => s.split(' ')[0]
 const unit = (dx, dy) => { const l = Math.hypot(dx, dy) || 1; return { x: dx / l, y: dy / l } }
@@ -31,7 +49,15 @@ const rot = (v, deg) => { const a = (deg * Math.PI) / 180, c = Math.cos(a), s = 
 const readable = (deg) => { let a = ((deg % 360) + 360) % 360; if (a > 180) a -= 360; if (a > 90) a -= 180; if (a <= -90) a += 180; return a }
 
 // Posisi titik pada gambar mengikuti koordinat asli (utara di atas), diskalakan agar muat di lembar.
-export function layoutJalur(pts) {
+// Dengan peta offline unggahan (po), seluruh gambar peta diletakkan sebagai latar di area gambar dan titik diposisikan
+// tepat di atasnya (bg = kotak gambar latar pada lembar).
+export function layoutJalur(pts, po) {
+  if (po) {
+    const x0 = 10, y0 = 80, AW = RIGHT - 10 - 2 * x0, HMAX_IMG = 1900 - y0 - 20
+    const k = Math.min(AW / po.w, HMAX_IMG / po.h), iw = po.w * k, ih = po.h * k
+    const bx = x0 + (AW - iw) / 2, H = Math.max(905, y0 + ih + 20)
+    return { P: pts.map((q) => { const { fx, fy } = keGambar(po, q); return { x: bx + fx * iw, y: y0 + fy * ih } }), H, s: iw / po.widthM, bg: { x: bx, y: y0, w: iw, h: ih } }
+  }
   if (!pts.length) return { P: [], H: 905, s: 1 }
   const lat0 = pts[0].lat, lng0 = pts[0].lng, kx = 111320 * Math.cos((lat0 * Math.PI) / 180), ky = 110574
   const m = pts.map((q) => ({ x: (q.lng - lng0) * kx, y: -(q.lat - lat0) * ky }))
@@ -47,12 +73,14 @@ export function layoutJalur(pts) {
 }
 
 // Letakkan kotak keterangan di sisi yang tidak menabrak garis, titik, atau kotak lain.
-export function letakKotak(P, boxH) {
-  const placed = [], out = []
+// ex = { P, placed, segs, up }: rintangan dari jalur lain (titik, kotak, garis) dan up = utamakan sisi atas (jalur ungu)
+export function letakKotak(P, boxH, ex) {
+  const placed = [...(ex?.placed || [])], out = []
   const segs = []
   for (let i = 0; i < P.length - 1; i++) segs.push([P[i], P[i + 1]])
-  const obst = P.map((q) => ({ ...q, r: 20 }))
-  for (const [a, b] of segs) obst.push({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, r: 34 })
+  const lain = ex?.segs || []
+  const obst = [...P.map((q) => ({ ...q, r: 20 })), ...(ex?.P || []).map((q) => ({ ...q, r: 20 }))]
+  for (const [a, b] of [...segs, ...lain]) obst.push({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, r: 34 })
   const hit = (r, q, rad) => q.x > r.x - rad && q.x < r.x + r.w + rad && q.y > r.y - rad && q.y < r.y + r.h + rad
   for (let i = 0; i < P.length; i++) {
     const a = P[i - 1] || P[i], b = P[i + 1] || P[i]
@@ -62,7 +90,7 @@ export function letakKotak(P, boxH) {
     if (i === P.length - 1) d2 = d1
     let dir = unit(d1.x + d2.x, d1.y + d2.y); if (Math.hypot(d1.x + d2.x, d1.y + d2.y) < 0.2) dir = d1
     const n = { x: -dir.y, y: dir.x }
-    const n0 = n.y >= 0 ? n : { x: -n.x, y: -n.y }  // utamakan sisi bawah
+    const n0 = (n.y >= 0) !== !!ex?.up ? n : { x: -n.x, y: -n.y }  // utamakan sisi bawah (jalur ungu: sisi atas)
     const cand = []
     for (const d0 of [16, 34, 58]) for (const u of [n0, { x: -n0.x, y: -n0.y }, rot(n0, 45), rot(n0, -45), rot({ x: -n0.x, y: -n0.y }, 45), rot({ x: -n0.x, y: -n0.y }, -45), rot(n0, 90), rot(n0, -90)]) cand.push({ u, d: d0 + Math.abs(u.x) * BOX_W / 2 + Math.abs(u.y) * boxH(i) / 2 })
     let best = null
@@ -73,7 +101,7 @@ export function letakKotak(P, boxH) {
       if (r.x < 8 || r.x + r.w > RIGHT - 18 || r.y < 80) cost += 50
       for (const o of placed) if (r.x < o.x + o.w + 6 && r.x + r.w + 6 > o.x && r.y < o.y + o.h + 6 && r.y + r.h + 6 > o.y) cost += 100
       for (let j = 0; j < obst.length; j++) if (!(j === i) && hit(r, obst[j], obst[j].r)) cost += 60
-      for (const [a2, b2] of segs) { const len = Math.hypot(b2.x - a2.x, b2.y - a2.y), nS = Math.max(2, Math.ceil(len / 6)); for (let k = 0; k <= nS; k++) { const t = k / nS; if (hit(r, { x: a2.x + (b2.x - a2.x) * t, y: a2.y + (b2.y - a2.y) * t }, 3)) { cost += 40; break } } }
+      for (const [a2, b2] of [...segs, ...lain]) { const len = Math.hypot(b2.x - a2.x, b2.y - a2.y), nS = Math.max(2, Math.ceil(len / 6)); for (let k = 0; k <= nS; k++) { const t = k / nS; if (hit(r, { x: a2.x + (b2.x - a2.x) * t, y: a2.y + (b2.y - a2.y) * t }, 3)) { cost += 40; break } } }
       cost += c.d * 0.05
       if (!best || cost < best.cost) best = { cost, cx, cy, r, u: c.u }
       if (cost < 3) break
@@ -86,11 +114,19 @@ export function letakKotak(P, boxH) {
 
 // Hitung seluruh tata letak gambar dari titik tagging (dipakai halaman Gambar dan pratinjau di halaman Peta)
 export function buatSkema(p) {
-  const pts = p.points
-  const lay = layoutJalur(pts), P = lay.P
+  const pts = p.points, ptsB = p.pointsBongkar || [], po = petaAktif(p)
+  // kedua jalur memakai satu skala/tata letak; jalur pembongkaran (ungu) digeser OFF_B ke atas jalur pemasangan (merah)
+  const lay = layoutJalur([...pts, ...ptsB], po), P = lay.P.slice(0, pts.length)
+  const PB = lay.P.slice(pts.length).map((q) => ({ x: q.x, y: q.y - OFF_B }))
   const boxH = (i) => 24 + Math.max(1, boxLines(pts[i]).length) * 14
-  const box = letakKotak(P, boxH)
-  const dekat = pts.map((_, i) => (i > 0 && Math.hypot(P[i].x - P[i - 1].x, P[i].y - P[i - 1].y) < 46 ? pts[i].nomor || `T${i + 1}` : null)).filter(Boolean)
+  const boxHB = (i) => 24 + Math.max(1, boxLines(ptsB[i], true).length) * 14
+  const segsDari = (A) => A.slice(1).map((q, i) => [A[i], q])
+  const box = letakKotak(P, boxH, ptsB.length ? { P: PB, segs: segsDari(PB) } : undefined)
+  const boxB = ptsB.length ? letakKotak(PB, boxHB, { P, segs: segsDari(P), up: true, placed: box.map((b, i) => ({ x: b.x, y: b.y, w: BOX_W, h: boxH(i) })) }) : []
+  const dekat = [
+    ...pts.map((_, i) => (i > 0 && Math.hypot(P[i].x - P[i - 1].x, P[i].y - P[i - 1].y) < 46 ? pts[i].nomor || `T${i + 1}` : null)),
+    ...ptsB.map((_, i) => (i > 0 && Math.hypot(PB[i].x - PB[i - 1].x, PB[i].y - PB[i - 1].y) < 46 ? ptsB[i].nomor || `B${i + 1}` : null)),
+  ].filter(Boolean)
   const place = (c) => {
     let best = null
     for (let i = 1; i < pts.length; i++) {
@@ -104,12 +140,13 @@ export function buatSkema(p) {
     const A = P[best.i], B = P[best.i + 1]
     return { x: A.x + best.t * (B.x - A.x), y: A.y + best.t * (B.y - A.y), ang: (Math.atan2(B.y - A.y, B.x - A.x) * 180) / Math.PI }
   }
-  return { pts, P, H: lay.H, box, boxH, dekat, sp: spans(pts), place }
+  return { pts, P, H: lay.H, bg: lay.bg || null, box, boxH, dekat, sp: spans(pts), place, ptsB, PB, boxB, boxHB, spB: spans(ptsB) }
 }
 
 // Isi gambar (penyeberangan + jalur + titik). onDown: seret kotak (halaman Gambar); onSelect/selId: sinkron dengan peta.
 export function SkemaIsi({ p, sk, onDown, onSelect, selId }) {
-  const { pts, P, box, boxH, sp, place } = sk
+  const { pts, P, box, boxH, sp, place, ptsB = [], PB = [], boxB = [], boxHB, spB = [] } = sk
+  const adaB = ptsB.length > 0 // bila ada jalur ungu, label penghantar merah dipindah ke bawah garis
   return (
     <>
               {/* penyeberangan */}
@@ -119,7 +156,7 @@ export function SkemaIsi({ p, sk, onDown, onSelect, selId }) {
                 if (c.type === 'SUTT') {
                   const t = R(-50, -78), h = R(100, -4)
                   return (
-                    <g key={c.id}>
+                    <g key={c.id} data-xl={`SUTT ${c.label || ''}`.trim()}>
                       <g transform={`translate(${pos.x},${pos.y}) rotate(${pos.ang})`}>
                         {[-18, 0, 18].map((o) => <line key={o} x1={-55 + o} y1={-70} x2={55 + o} y2={70} stroke="#1D6FD6" strokeWidth="2.5" />)}
                         {c.tinggi && <path d="M78 -60 q8 0 8 8 v36 q0 6 8 6 q-8 0 -8 6 v36 q0 8 -8 8" fill="none" stroke="#1D6FD6" />}
@@ -131,7 +168,7 @@ export function SkemaIsi({ p, sk, onDown, onSelect, selId }) {
                 }
                 const lab = R(0, -128)
                 return (
-                  <g key={c.id}>
+                  <g key={c.id} data-xl={`${c.type} ${c.label || ''}`.trim()}>
                     <rect x={-14} y={-115} width="28" height="230" fill={c.type === 'Sungai' ? '#9fd4ee' : '#a6a6a6'} transform={`translate(${pos.x},${pos.y}) rotate(${pos.ang})`} />
                     <text x={lab.x} y={lab.y} textAnchor="middle" fontSize="12" fill="#444">{c.label || c.type}</text>
                   </g>
@@ -148,13 +185,13 @@ export function SkemaIsi({ p, sk, onDown, onSelect, selId }) {
                   const warn = isTajam(p, next) || isTajam(p, pt)
                   const c = warn ? WARN : colorOf(next.kondisi), ls = lineSymOf(next.konduktor)
                   return (
-                    <g key={'s' + i}>
+                    <g key={'s' + i} data-xl={`Jalur ${pt.nomor || `T${i + 1}`} - ${next.nomor || `T${i + 2}`}`}>
                       <line x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke={c} strokeWidth={warn ? 4 : ls === 'jtr3' ? 3.4 : ls === 'jtr1' ? 1.8 : 2.4} strokeDasharray={next.kondisi === 'Bongkar' ? '2 6' : ls === 'jtm1' ? '8 5' : ''} />
                       <g transform={`translate(${mx},${my}) rotate(${ra})`}>
                         {(ls === 'jtr1' || ls === 'jtr3') && len > 60 && [-14, 0, 14].map((o) => <line key={o} x1={o - 3} y1={5} x2={o + 3} y2={-5} stroke={c} strokeWidth="1.5" />)}
-                        {len > 70 && <><text x="0" y="-14" textAnchor="middle" fontSize="14" fill={c}>{shortKond(next.konduktor)}</text>
-                        <text x="0" y="24" textAnchor="middle" fontSize="15" fill={c}>{sp[i]} m</text></>}
-                        {len <= 70 && <text x="0" y="-10" textAnchor="middle" fontSize="12" fill={c}>{sp[i]} m</text>}
+                        {len > 70 && <><text x="0" y={adaB ? 22 : -14} textAnchor="middle" fontSize="14" fill={c}>{shortKond(next.konduktor)}</text>
+                        <text x="0" y={adaB ? 38 : 24} textAnchor="middle" fontSize="15" fill={c}>{sp[i]} m</text></>}
+                        {len <= 70 && <text x="0" y={adaB ? 18 : -10} textAnchor="middle" fontSize="12" fill={c}>{sp[i]} m</text>}
                       </g>
                     </g>
                   )
@@ -168,25 +205,72 @@ export function SkemaIsi({ p, sk, onDown, onSelect, selId }) {
               {/* titik + kotak keterangan */}
               {pts.map((pt, i) => {
                 const x = P[i].x, y = P[i].y, c = colorOf(pt.kondisi), st = statusOf(pt.kondisi), eq = equipSym(pt)
-                const lines = boxLines(pt), lb = p.labelPos[pt.id] || { dx: 0, dy: 0 }
+                const lines = boxRows(pt), lb = p.labelPos[pt.id] || { dx: 0, dy: 0 }
                 const bh = boxH(i), bx = box[i].x + lb.dx, by = box[i].y + lb.dy
                 const ex = x - box[i].u.x * 26, ey = y - box[i].u.y * 26
                 return (
-                  <g key={pt.id}>
+                  <g key={pt.id} data-xl={`Titik ${pt.nomor || `T${i + 1}`}`}>
                     {selId === pt.id && <circle cx={x} cy={y} r="20" fill="none" stroke="#FFC400" strokeWidth="4" />}
-                    <Sym t={tiangSym(pt)} s={st} x={x} y={y} k={1.3} />
+                    <Sym t={tiangSym(pt)} s={st} x={x} y={y} k={1.3} n={`Simbol tiang ${pt.nomor || `T${i + 1}`}`} />
                     {onSelect && <circle cx={x} cy={y} r="22" fill="transparent" style={{ cursor: 'pointer' }} onClick={() => onSelect(pt.id)} />}
-                    {eq && <Sym t={eq} s={st} x={ex} y={ey} k={1.2} />}
+                    {eq && <Sym t={eq} s={st} x={ex} y={ey} k={1.2} n={`Simbol peralatan ${pt.nomor || `T${i + 1}`}`} />}
                     <line x1={x} y1={y} x2={bx + BOX_W / 2} y2={by + bh / 2} stroke={c} strokeWidth="0.8" />
-                    <g transform={`translate(${bx},${by})`} className={onDown ? 'drag' : ''} onPointerDown={onDown ? (e) => onDown(e, pt.id) : undefined} onClick={onSelect ? () => onSelect(pt.id) : undefined} style={onSelect ? { cursor: 'pointer' } : undefined}>
+                    <g data-xl={`Keterangan ${pt.nomor || `T${i + 1}`}`} transform={`translate(${bx},${by})`} className={onDown ? 'drag' : ''} onPointerDown={onDown ? (e) => onDown(e, pt.id) : undefined} onClick={onSelect ? () => onSelect(pt.id) : undefined} style={onSelect ? { cursor: 'pointer' } : undefined}>
                       <rect width={BOX_W} height={bh} fill="#fff" stroke={c} strokeWidth="1.2" />
                       <text x={BOX_W / 2} y="15" textAnchor="middle" fontSize="12.5" fontWeight="700" fill={c}>{pt.nomor || `T${i + 1}`}</text>
                       <line x1="0" y1="21" x2={BOX_W} y2="21" stroke={c} strokeWidth="0.8" />
-                      {lines.map((t, k) => <text key={k} x={BOX_W / 2} y={34 + k * 14} textAnchor="middle" fontSize="12" fill={c}>{t}</text>)}
+                      {lines.map((r, k) => <text key={k} x={BOX_W / 2} y={34 + k * 14} textAnchor="middle" fontSize="12" fill={r.baru ? C_BARU : c}>{r.t}</text>)}
                     </g>
                   </g>
                 )
               })}
+
+              {/* jalur pembongkaran (ungu): titik sendiri, sejajar dan sedikit di atas jalur merah */}
+              {ptsB.length > 0 && (
+                <g data-xl="Jalur pembongkaran (ungu)">
+                  {ptsB.map((pt, i) => {
+                    const next = ptsB[i + 1], nama = pt.nomor || `B${i + 1}`
+                    if (next) {
+                      const A = PB[i], B = PB[i + 1], mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2
+                      const ang = (Math.atan2(B.y - A.y, B.x - A.x) * 180) / Math.PI, ra = readable(ang)
+                      const len = Math.hypot(B.x - A.x, B.y - A.y), ls = lineSymOf(next.konduktor)
+                      return (
+                        <g key={'bs' + i} data-xl={`Jalur bongkar ${nama} - ${next.nomor || `B${i + 2}`}`}>
+                          <line x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke={C_BONGKAR} strokeWidth={ls === 'jtr3' ? 3.4 : ls === 'jtr1' ? 1.8 : 2.4} strokeDasharray={ls === 'jtm1' ? '8 5' : ''} />
+                          <g transform={`translate(${mx},${my}) rotate(${ra})`}>
+                            {len > 70 && <><text x="0" y="-30" textAnchor="middle" fontSize="14" fill={C_BONGKAR}>{shortKond(next.konduktor)}</text><text x="0" y="-14" textAnchor="middle" fontSize="15" fill={C_BONGKAR}>{spB[i]} m</text></>}
+                            {len <= 70 && <text x="0" y="-10" textAnchor="middle" fontSize="12" fill={C_BONGKAR}>{spB[i]} m</text>}
+                          </g>
+                        </g>
+                      )
+                    }
+                    const prev = PB[i - 1] || { x: PB[i].x - 1, y: PB[i].y }
+                    const ang = (Math.atan2(PB[i].y - prev.y, PB[i].x - prev.x) * 180) / Math.PI
+                    return <polygon key={'ba' + i} points="14,-5 34,0 14,5" fill={C_BONGKAR} transform={`translate(${PB[i].x},${PB[i].y}) rotate(${ang})`} />
+                  })}
+                  {ptsB.map((pt, i) => {
+                    const x = PB[i].x, y = PB[i].y, c = C_BONGKAR, eq = equipSym(pt), nama = pt.nomor || `B${i + 1}`
+                    const lines = boxRows(pt, true), lb = p.labelPos[pt.id] || { dx: 0, dy: 0 }
+                    const bh = boxHB(i), bx = boxB[i].x + lb.dx, by = boxB[i].y + lb.dy
+                    const ex = x - boxB[i].u.x * 26, ey = y - boxB[i].u.y * 26
+                    return (
+                      <g key={pt.id} data-xl={`Titik bongkar ${nama}`}>
+                        {selId === pt.id && <circle cx={x} cy={y} r="20" fill="none" stroke="#FFC400" strokeWidth="4" />}
+                        <Sym t={tiangSym(pt)} s="bongkar" x={x} y={y} k={1.3} n={`Simbol tiang bongkar ${nama}`} />
+                        {onSelect && <circle cx={x} cy={y} r="22" fill="transparent" style={{ cursor: 'pointer' }} onClick={() => onSelect(pt.id)} />}
+                        {eq && <Sym t={eq} s="bongkar" x={ex} y={ey} k={1.2} n={`Simbol peralatan bongkar ${nama}`} />}
+                        <line x1={x} y1={y} x2={bx + BOX_W / 2} y2={by + bh / 2} stroke={c} strokeWidth="0.8" />
+                        <g data-xl={`Keterangan bongkar ${nama}`} transform={`translate(${bx},${by})`} className={onDown ? 'drag' : ''} onPointerDown={onDown ? (e) => onDown(e, pt.id) : undefined} onClick={onSelect ? () => onSelect(pt.id) : undefined} style={onSelect ? { cursor: 'pointer' } : undefined}>
+                          <rect width={BOX_W} height={bh} fill="#fff" stroke={c} strokeWidth="1.2" />
+                          <text x={BOX_W / 2} y="15" textAnchor="middle" fontSize="12.5" fontWeight="700" fill={c}>{nama}</text>
+                          <line x1="0" y1="21" x2={BOX_W} y2="21" stroke={c} strokeWidth="0.8" />
+                          {lines.map((r, k) => <text key={k} x={BOX_W / 2} y={34 + k * 14} textAnchor="middle" fontSize="12" fill={c}>{r.t}</text>)}
+                        </g>
+                      </g>
+                    )
+                  })}
+                </g>
+              )}
 
     </>
   )

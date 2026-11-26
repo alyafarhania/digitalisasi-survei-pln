@@ -17,18 +17,15 @@ export const putTile = (url, blob) => tx('readwrite', (s) => s.put(blob, url)).c
 export const countTiles = () => tx('readonly', (s) => s.count()).catch(() => 0)
 export const clearTiles = () => tx('readwrite', (s) => s.clear()).catch(() => null)
 
-// Dua tampilan peta: jalan (OpenStreetMap) dan satelit (Esri World Imagery).
+// Dua tampilan peta: jalan (OpenStreetMap, gaya CARTO tanpa label) dan satelit (Esri World Imagery, tanpa label).
 // maxNative = zoom tertinggi yang ada gambarnya; di atas itu gambar diperbesar saja (maxZoom).
 export const LAYERS = {
-  peta: { nama: 'Peta', url: (z, x, y) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`, maxNative: 19, mb: 0.015,
-    attr: '© OpenStreetMap contributors' },
+  // Peta jalan TANPA tulisan (tanpa nama jalan/tempat). Nama tempat hanya muncul pada hasil pencarian.
+  peta: { nama: 'Peta', url: (z, x, y) => `https://a.basemaps.cartocdn.com/rastertiles/voyager_nolabels/${z}/${x}/${y}.png`, maxNative: 19, mb: 0.015,
+    attr: '© OpenStreetMap contributors © CARTO' },
   satelit: { nama: 'Satelit', url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`, maxNative: 19, mb: 0.03,
     attr: 'Tiles © Esri — Esri, Maxar, Earthstar Geographics, dan komunitas GIS' },
 }
-// Lapisan nama tempat (jalan, kampung, kantor, sekolah, dll.) yang ditempel di atas citra satelit.
-export const LABEL = { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', maxNative: 19 }
-export const getLabelPref = () => { try { return localStorage.getItem('pln-label') !== '0' } catch { return true } }
-export const setLabelPref = (v) => { try { localStorage.setItem('pln-label', v ? '1' : '0') } catch { /* abaikan */ } }
 export const MAX_ZOOM = 21
 export const getLayerPref = () => { try { const v = localStorage.getItem('pln-layer'); return LAYERS[v] ? v : 'satelit' } catch { return 'satelit' } }
 export const setLayerPref = (v) => { try { localStorage.setItem('pln-layer', v) } catch { /* abaikan */ } }

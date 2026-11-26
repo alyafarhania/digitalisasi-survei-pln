@@ -8,7 +8,7 @@ test.describe('HP (Pixel 5)', () => {
     await page.goto('/login'); await noHScroll(page); await page.locator('.demo-i', { hasText: 'Agus Santoso' }).tap(); await page.locator('button[type=submit]').tap(); await expect(page).toHaveURL('/'); await expect(page.locator('.uchip')).toBeVisible()
   })
   test('daftar: filter cepat bisa digeser, kartu terbaca, tanpa gulir horizontal halaman', async ({ page }) => {
-    await seed(page, 'admin', { projects: [projectDoc({ n: 1 }), projectDoc({ n: 2, status: 'Selesai' })] }); await page.goto('/'); await expect(page.locator('.qf-i')).toHaveCount(5); await noHScroll(page)
+    await seed(page, 'asman', { projects: [projectDoc({ n: 1 }), projectDoc({ n: 2, status: 'Selesai' })] }); await page.goto('/'); await expect(page.locator('.qf-i')).toHaveCount(5); await noHScroll(page)
     await page.locator('.qf-i.final').tap(); await expect(cards(page)).toHaveCount(1); await expect(card(page, 'UJI 2').locator('.paudit')).toBeVisible()
   })
   test('alur: buat project, stepper & panduan terlipat, tombol Kembali/Sebelumnya terbaca', async ({ page }) => {
@@ -47,7 +47,7 @@ test.describe('HP (Pixel 5)', () => {
     await seed(page, 'surveyor', { projects: [projectDoc()] }); await page.goto('/'); await page.getByRole('button', { name: /Hapus project/ }).tap(); await expect(page.locator('.modal')).toContainText('tidak dapat dibatalkan')
   })
   test('menu pengguna & keluar di HP', async ({ page }) => {
-    await login(page, 'perencana'); await page.locator('.uchip').tap(); await expect(page.locator('.upop')).toBeVisible(); const b = await page.locator('.upop').boundingBox(); expect(b.x).toBeGreaterThanOrEqual(0); await page.getByRole('button', { name: 'Keluar' }).tap(); await expect(page).toHaveURL(/\/login/)
+    await login(page, 'asman'); await page.locator('.uchip').tap(); await expect(page.locator('.upop')).toBeVisible(); const b = await page.locator('.upop').boundingBox(); expect(b.x).toBeGreaterThanOrEqual(0); await page.getByRole('button', { name: 'Keluar' }).tap(); await expect(page).toHaveURL(/\/login/)
   })
   test('tidak ada gulir horizontal di halaman utama langkah', async ({ page }) => {
     await seed(page, 'surveyor', { projects: [projectDoc()] }); for (const s of ['data', 'peta', 'gambar', 'ekspor']) { await page.goto(`/project/kode0001ab/${s}`); await noHScroll(page) }

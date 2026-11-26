@@ -20,13 +20,13 @@ test.describe('Login & sesi (mock)', () => {
   })
   test('ketuk akun demo mengisi form', async ({ page }) => {
     await page.goto('/login'); await page.locator('.demo-i', { hasText: 'Bagus Prasetyo' }).click()
-    await expect(page.locator('input[type=email]')).toHaveValue('perencana@pln.test'); await expect(page.locator('input[type=password]')).toHaveValue('perencana123')
+    await expect(page.locator('input[type=email]')).toHaveValue('asman@pln.test'); await expect(page.locator('input[type=password]')).toHaveValue('asman123')
   })
   test('tombol tampilkan/sembunyikan kata sandi', async ({ page }) => {
     await page.goto('/login'); const p = page.locator('.pwd input'); await p.fill('rahasia'); await expect(p).toHaveAttribute('type', 'password')
     await page.getByRole('button', { name: 'Tampilkan kata sandi' }).click(); await expect(p).toHaveAttribute('type', 'text')
   })
-  for (const who of ['admin', 'perencana', 'surveyor', 'manajer']) {
+  for (const who of ['asman', 'surveyor']) {
     test(`masuk sebagai ${who}: nama dan peran tampil di header`, async ({ page }) => {
       await login(page, who); await expect(page).toHaveURL('/')
       await expect(page.locator('.uchip')).toContainText(USERS[who].name); await expect(page.locator('.uchip')).toContainText(USERS[who].label)
@@ -39,15 +39,15 @@ test.describe('Login & sesi (mock)', () => {
     await login(page, 'surveyor', '//evil.example.com'); await expect(page).toHaveURL('/')
   })
   test('sesi bertahan setelah reload', async ({ page }) => {
-    await login(page, 'perencana'); await page.reload(); await expect(page.locator('.uchip')).toContainText('Bagus Prasetyo'); await expect(page).toHaveURL('/')
+    await login(page, 'asman'); await page.reload(); await expect(page.locator('.uchip')).toContainText('Bagus Prasetyo'); await expect(page).toHaveURL('/')
   })
   test('keluar mengakhiri sesi dan melindungi alamat', async ({ page }) => {
-    await login(page, 'admin'); await logout(page); await page.goto('/'); await expect(page).toHaveURL(/\/login/)
+    await login(page, 'asman'); await logout(page); await page.goto('/'); await expect(page).toHaveURL(/\/login/)
   })
   test('sudah masuk lalu buka /login: dialihkan ke beranda', async ({ page }) => {
-    await login(page, 'admin'); await page.goto('/login'); await expect(page).toHaveURL('/')
+    await login(page, 'asman'); await page.goto('/login'); await expect(page).toHaveURL('/')
   })
   test('menu pengguna menjelaskan hak peran', async ({ page }) => {
-    await login(page, 'manajer'); await page.locator('.uchip').click(); await expect(page.locator('.upop')).toContainText('Hanya melihat')
+    await login(page, 'asman'); await page.locator('.uchip').click(); await expect(page.locator('.upop')).toContainText('memfinalisasi')
   })
 })

@@ -138,7 +138,7 @@ function Shell() {
       </header>
       {util && <div className="stepbar util"><div className="stepbar-in"><Button variant="secondary" size="sm" icon="chevL" onClick={() => router.push(prevPath.current && prevPath.current !== '/offline' ? prevPath.current : '/')}>Kembali</Button></div></div>}
       {inProject && <Stepper page={view.page} status={status} project={baru ? null : active} go={go} onHome={keDaftar} />}
-      <div className={`rbody ${view.page === 'rab' ? 'wide' : ''}`}>
+      <div className={`rbody ${view.page === 'rab' || view.page === 'peta' ? 'wide' : ''} ${view.page === 'peta' ? 'peta' : ''}`}>
         {inProject && siap && <StepGuide page={view.page} project={baru ? null : active} onToggle={toggleGuide} />}
         <main className="rmain">
           {notfound && <Card><EmptyState icon="folder" actions={<Button onClick={() => go('project')}>Ke daftar project</Button>}>Halaman tidak ditemukan.</EmptyState></Card>}

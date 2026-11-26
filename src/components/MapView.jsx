@@ -1,16 +1,25 @@
 import { useEffect, useState } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { MapContainer, Marker, Polyline, useMap, useMapEvents, CircleMarker, Circle } from 'react-leaflet'
+import { MapContainer, Marker, Polyline, Pane, ImageOverlay, useMap, useMapEvents, CircleMarker, Circle } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Icon } from './ui'
 import { isTajam } from '../store'
-import { Sym, colorOf, symOfPoint, statusOf, lineSymOf } from '../lib/symbols'
-import { getTile, LAYERS, MAX_ZOOM, getLayerPref, setLayerPref, getLabelPref, setLabelPref } from '../lib/offlineTiles'
+import { Sym, colorOf, symOfPoint, statusOf, lineSymOf, C_BONGKAR } from '../lib/symbols'
+import { getTile, LAYERS, MAX_ZOOM, getLayerPref, setLayerPref } from '../lib/offlineTiles'
 
 const WARN = '#FF8A00'
 
-// Lapisan tile: cek penyimpanan offline dulu, baru jaringan
+// Ukuran marker mengikuti zoom: penuh (seperti semula) pada zoom 17 ke atas, makin kecil saat zoom out
+// (faktor 2^(0,45 per tingkat)) supaya titik tidak memenuhi peta. Batas bawah 0,28 agar tetap terlihat.
+export const ZOOM_PENUH = 17
+export const skalaMarker = (z) => Math.max(0.28, Math.min(1, 2 ** ((z - ZOOM_PENUH) * 0.45)))
+// Jalur pembongkaran (ungu) digambar sejajar dan sedikit di atas (utara) jalur pemasangan (merah): selisih tetap dalam piksel layar,
+// ikut mengecil bersama marker saat zoom out. Koordinat titik aslinya tidak berubah.
+export const GESER_BONGKAR_PX = 16
+export const geserBongkarLat = (z, lat) => (GESER_BONGKAR_PX * skalaMarker(z) * (156543.03392 * Math.cos((lat * Math.PI) / 180)) / 2 ** z) / 110574
+
+// Lapisan tile: cek penyimpanan offline dulu, baru jaringan. Tidak dipasang saat peta offline unggahan dipakai.
 function OfflineTiles({ layerKey }) {
   const map = useMap()
   useEffect(() => {
@@ -41,83 +50,37 @@ function OfflineTiles({ layerKey }) {
   return null
 }
 
-
-// Ikon + nama tempat (masjid, sekolah, pasar, toko, kantor, dll.) dari OpenStreetMap lewat Overpass, ditempel di atas satelit.
-const POI_URLS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']
-const poiCache = new Map()
-const poiGroup = (t) => {
-  const a = t.amenity || '', sh = t.shop, tr = t.tourism, le = t.leisure
-  if (/place_of_worship/.test(a)) return ['#7B5EA7', 'ibadah']
-  if (/school|university|college|kindergarten|library/.test(a)) return ['#2F6DB5', 'sekolah']
-  if (/hospital|clinic|doctors|pharmacy|dentist/.test(a)) return ['#D64545', 'kesehatan']
-  if (/restaurant|cafe|fast_food|food_court|bar/.test(a)) return ['#E8862A', 'makan']
-  if (sh || /marketplace|bank|atm|fuel/.test(a)) return ['#E8862A', 'toko']
-  if (tr || t.historic) return ['#7B5EA7', 'wisata']
-  if (le || /park|garden/.test(t.landuse || '')) return ['#2E9E5B', 'taman']
-  return ['#5B6C7A', 'kantor']
-}
-function Poi({ on }) {
-  const map = useMap()
-  useEffect(() => {
-    if (!on) return
-    const grup = L.layerGroup().addTo(map)
-    map.attributionControl?.addAttribution('Nama tempat © OpenStreetMap')
-    let timer, ctl
-    const muat = async () => {
-      if (map.getZoom() < 15) { grup.clearLayers(); return }
-      const b = map.getBounds().pad(0.1), r = (v) => v.toFixed(3)
-      const key = [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()].map(r).join(',')
-      let els = poiCache.get(key)
-      if (!els) {
-        ctl?.abort(); ctl = new AbortController()
-        const bb = `${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`
-        const q = `[out:json][timeout:20];(nwr["name"][~"^(amenity|shop|tourism|leisure|office|historic)$"~"."](${bb});nwr["name"]["place"~"^(village|hamlet|suburb|neighbourhood|town|locality|quarter)$"](${bb});way["name"]["highway"~"^(trunk|primary|secondary|tertiary|unclassified|residential|living_street)$"](${bb}););out center 400;`
-        for (const u of POI_URLS) {
-          try {
-            const res = await fetch(u, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, signal: ctl.signal })
-            if (!res.ok) continue
-            els = (await res.json()).elements || []; poiCache.set(key, els); break
-          } catch (e) { if (e.name === 'AbortError') return }
-        }
-      }
-      grup.clearLayers()
-      ;(els || []).forEach((e) => {
-        const lat = e.lat ?? e.center?.lat, lng = e.lon ?? e.center?.lon, nama = e.tags?.name
-        if (lat == null || lng == null || !nama) return
-        const t = e.tags, jenis = t.place ? 'place' : t.highway && !t.amenity && !t.shop && !t.tourism ? 'road' : 'poi'
-        const [c] = poiGroup(t)
-        L.marker([lat, lng], { interactive: false, keyboard: false, zIndexOffset: -500, icon: L.divIcon({
-          className: 'poi-wrap', iconSize: [10, 10], iconAnchor: [5, 5],
-          html: jenis === 'poi' ? `<span class="poi-dot" style="background:${c}"></span><span class="poi-name">${nama.replace(/[<>&]/g, '')}</span>` : `<span class="poi-${jenis}">${nama.replace(/[<>&]/g, '')}</span>`,
-        }) }).addTo(grup)
-      })
-    }
-    const jadwal = () => { clearTimeout(timer); timer = setTimeout(muat, 600) }
-    map.on('moveend', jadwal); jadwal()
-    return () => { clearTimeout(timer); ctl?.abort(); map.off('moveend', jadwal); map.attributionControl?.removeAttribution('Nama tempat © OpenStreetMap'); map.removeLayer(grup) }
-  }, [map, on])
-  return null
-}
-
-// Pin merah hasil pencarian lokasi
+// Pin merah hasil pencarian lokasi + nama tempat yang dicari. Satu-satunya nama yang tampil di peta.
+const esc = (t) => String(t).replace(/[<>&"]/g, '')
 const pinIcon = (nama) => L.divIcon({
   className: 'pin-wrap',
-  html: `<div class="pin-cari"><svg width="32" height="42" viewBox="0 0 32 42"><path d="M16 0C7.2 0 0 7 0 15.6 0 27 16 42 16 42s16-15 16-26.4C32 7 24.8 0 16 0z" fill="#E11D2E" stroke="#fff" stroke-width="2"/><circle cx="16" cy="15.5" r="5.5" fill="#fff"/></svg>${nama ? `<span>${nama.replace(/[<>&]/g, '')}</span>` : ''}</div>`,
+  html: `<div class="pin-cari"><svg width="32" height="42" viewBox="0 0 32 42"><path d="M16 0C7.2 0 0 7 0 15.6 0 27 16 42 16 42s16-15 16-26.4C32 7 24.8 0 16 0z" fill="#E11D2E" stroke="#fff" stroke-width="2"/><circle cx="16" cy="15.5" r="5.5" fill="#fff"/></svg>${nama ? `<span>${esc(nama)}</span>` : ''}</div>`,
   iconSize: [32, 42], iconAnchor: [16, 42],
 })
 
-const poleIcon = (p, sel) => {
-  const c = colorOf(p.kondisi)
-  const svg = renderToStaticMarkup(<svg width="34" height="34" viewBox="-17 -17 34 34"><Sym t={symOfPoint(p)} s={statusOf(p.kondisi)} k={1.25} /></svg>)
-  return L.divIcon({ className: 'pole-wrap', html: `<div class="pole ${sel ? 'sel' : ''}">${svg}<span style="background:${c}">${p.nomor || ''}</span></div>`, iconSize: [34, 34], iconAnchor: [17, 17] })
+const poleIcon = (p, sel, s = 1) => {
+  const c = colorOf(p.kondisi), size = Math.max(10, Math.round(34 * s)), n = (p.konsBaru || []).length
+  const svg = renderToStaticMarkup(<svg width={size} height={size} viewBox="-17 -17 34 34"><Sym t={symOfPoint(p)} s={statusOf(p.kondisi)} k={1.25} /></svg>)
+  const label = s >= 0.45 && p.nomor
+    ? `<span style="background:${c};font-size:${(11 * s).toFixed(1)}px;padding:${(1 * s).toFixed(1)}px ${(6 * s).toFixed(1)}px;top:${Math.round(-14 * s)}px;border-radius:${Math.round(5 * s)}px">${esc(p.nomor)}</span>` : ''
+  const badge = n && s >= 0.6 ? `<i class="pole-kb" style="font-size:${(9.5 * s).toFixed(1)}px;min-width:${Math.round(15 * s)}px;height:${Math.round(15 * s)}px">+${n}</i>` : ''
+  return L.divIcon({ className: 'pole-wrap', html: `<div class="pole ${sel ? 'sel' : ''}" style="width:${size}px;height:${size}px">${svg}${label}${badge}</div>`, iconSize: [size, size], iconAnchor: [size / 2, size / 2] })
 }
-const crossIcon = (type) =>
-  L.divIcon({ className: 'pole-wrap', html: `<div class="cross ${type}">${type === 'SUTT' ? '⚡' : type === 'Sungai' ? '≈' : '═'}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] })
+const crossIcon = (type, s = 1) => {
+  const size = Math.max(10, Math.round(26 * s))
+  return L.divIcon({ className: 'pole-wrap', html: `<div class="cross ${type}" style="width:${size}px;height:${size}px;font-size:${(13 * s).toFixed(1)}px;border-radius:${Math.round(6 * s)}px">${type === 'SUTT' ? '⚡' : type === 'Sungai' ? '≈' : '═'}</div>`, iconSize: [size, size], iconAnchor: [size / 2, size / 2] })
+}
 
 function Clicker({ onMap }) { useMapEvents({ click: (e) => onMap(e.latlng) }); return null }
 function Fly({ target }) {
   const map = useMap()
   useEffect(() => { if (target) map.flyTo([target.lat, target.lng], target.zoom || 17, { duration: 0.8 }) }, [target, map])
+  return null
+}
+// Pas-kan tampilan ke gambar peta offline saat dipilih/diganti (bukan tiap kali skala diubah)
+function FitOffline({ id, bounds }) {
+  const map = useMap()
+  useEffect(() => { if (id && bounds) map.fitBounds(bounds, { padding: [16, 16], animate: false }) }, [id]) // eslint-disable-line
   return null
 }
 // Peta menyesuaikan ukuran saat wadahnya melebar/menyempit (tombol Perlebar peta, putar layar, dll.)
@@ -130,14 +93,19 @@ function AutoSize() {
   }, [map])
   return null
 }
+function ZoomWatch({ onZoom }) {
+  const map = useMap()
+  useEffect(() => { onZoom(map.getZoom()) }, [map]) // eslint-disable-line
+  useMapEvents({ zoomend: () => onZoom(map.getZoom()) })
+  return null
+}
 function Bridge({ mapRef }) { mapRef.current = useMap(); return null }
-function LayerSwitch({ value, onChange, label, onLabel }) {
+function LayerSwitch({ value, onChange }) {
   return (
     <div className="map-layer" role="group" aria-label="Tampilan peta">
       {Object.entries(LAYERS).map(([k, l]) => (
         <button key={k} className={value === k ? 'on' : ''} onClick={() => onChange(k)}>{l.nama}</button>
       ))}
-      {value === 'satelit' && <button className={label ? 'on' : ''} onClick={() => onLabel(!label)} title="Tampilkan nama tempat, jalan, dan kampung di atas satelit">Nama tempat</button>}
     </div>
   )
 }
@@ -151,24 +119,38 @@ function Zoom() {
   )
 }
 
-export default function MapView({ project, selected, onSelect, mode, running, onAddPoint, onAddCross, onDelete, onMove, fly, gpsPos, areaCircle, mapRef, pin }) {
-  const [label, setLabel] = useState(getLabelPref)
-  const pilihLabel = (v) => { setLabel(v); setLabelPref(v) }
+// offline = { id, url, bounds } : gambar peta offline unggahan yang menggantikan peta online (url null = belum terbaca)
+// jalur = jalur yang sedang dikerjakan ('baru' merah | 'bongkar' ungu)
+export default function MapView({ project, selected, onSelect, mode, running, onAddPoint, onAddCross, onDelete, onMove, fly, gpsPos, areaCircle, mapRef, pin, offline, kalibrasi, onKalibrasi, calPts = [], jalur = 'baru' }) {
   const [layerKey, setLayerKey] = useState(getLayerPref)
   const pilihLayer = (k) => { setLayerKey(k); setLayerPref(k) }
-  const pts = project.points
-  const center = pts[0] ? [pts[0].lat, pts[0].lng] : [-7.7059, 110.6016]
+  const [zoom, setZoom] = useState(ZOOM_PENUH)
+  const s = skalaMarker(zoom)
+  const pts = project.points, ptsB = project.pointsBongkar || []
+  const first = pts[0] || ptsB[0]
+  const center = first ? [first.lat, first.lng] : [-7.7059, 110.6016]
+  const dLat = geserBongkarLat(zoom, first ? first.lat : -7.7)
+  const gb = (q) => [q.lat + dLat, q.lng]
+  // saat menambah titik, marker jalur lain tidak menangkap ketukan supaya titik baru bisa diletakkan tepat di atasnya
+  const bisaKlik = (j) => jalur === j || !(running && mode === 'titik')
   const onMap = (ll) => {
+    if (kalibrasi) return onKalibrasi?.(ll)
     if (!running) return
     if (mode === 'titik') onAddPoint(ll)
     if (mode === 'silang') onAddCross(ll)
   }
   return (
-    <MapContainer center={center} zoom={17} maxZoom={MAX_ZOOM} zoomControl={false} className="map">
-      <OfflineTiles layerKey={layerKey} />
+    <MapContainer center={center} zoom={17} maxZoom={MAX_ZOOM} zoomControl={false} className={`map ${offline ? 'map-offline' : ''}`}>
+      {!offline && <OfflineTiles layerKey={layerKey} />}
+      {offline && (
+        <>
+          <Pane name="petaoffline" style={{ zIndex: 250 }}>{offline.url && <ImageOverlay url={offline.url} bounds={offline.bounds} />}</Pane>
+          <FitOffline id={offline.id} bounds={offline.bounds} />
+        </>
+      )}
       <AutoSize />
-      <Poi on={layerKey === 'satelit' && label} />
-      <LayerSwitch value={layerKey} onChange={pilihLayer} label={label} onLabel={pilihLabel} />
+      <ZoomWatch onZoom={setZoom} />
+      {!offline && <LayerSwitch value={layerKey} onChange={pilihLayer} />}
       <Bridge mapRef={mapRef} />
       <Clicker onMap={onMap} />
       <Fly target={fly} />
@@ -179,16 +161,23 @@ export default function MapView({ project, selected, onSelect, mode, running, on
         const c = colorOf(p.kondisi)
         return (
           <Polyline key={'l' + p.id} positions={[[pts[i].lat, pts[i].lng], [p.lat, p.lng]]}
-            pathOptions={{ color: warn ? WARN : c, weight: warn ? 6 : 4, dashArray: p.kondisi === 'Bongkar' ? '2 8' : lineSymOf(p.konduktor) === 'jtm1' ? '10 6' : undefined }} />
+            pathOptions={{ color: warn ? WARN : c, weight: Math.max(1.5, (warn ? 6 : 4) * s), dashArray: p.kondisi === 'Bongkar' ? '2 8' : lineSymOf(p.konduktor) === 'jtm1' ? '10 6' : undefined }} />
         )
       })}
+      {ptsB.slice(1).map((p, i) => <Polyline key={'bl' + p.id} positions={[gb(ptsB[i]), gb(p)]} pathOptions={{ color: C_BONGKAR, weight: Math.max(1.5, 4 * s), dashArray: lineSymOf(p.konduktor) === 'jtm1' ? '10 6' : undefined }} interactive={false} />)}
       {pts.map((p) => (
-        <Marker key={p.id} position={[p.lat, p.lng]} icon={poleIcon(p, selected === p.id)} draggable={!!onMove}
+        <Marker key={p.id} position={[p.lat, p.lng]} icon={poleIcon(p, selected === p.id, s)} draggable={!!onMove} interactive={bisaKlik('baru')}
           eventHandlers={{ click: (e) => { e.originalEvent?.stopPropagation?.(); mode === 'hapus' && running ? onDelete(p.id) : onSelect(p.id) }, dragend: (e) => onMove && onMove(p.id, e.target.getLatLng()) }} />
       ))}
-      {project.crossings.map((c) => (
-        <Marker key={c.id} position={[c.lat, c.lng]} icon={crossIcon(c.type)} draggable={!!onMove} eventHandlers={{ click: () => mode === 'hapus' && onDelete(c.id, true), dragend: (e) => onMove && onMove(c.id, e.target.getLatLng(), true) }} />
+      {ptsB.map((p) => (
+        <Marker key={p.id} position={gb(p)} icon={poleIcon({ ...p, kondisi: 'Bongkar' }, selected === p.id, s)} draggable={!!onMove} interactive={bisaKlik('bongkar')} zIndexOffset={200}
+          eventHandlers={{ click: (e) => { e.originalEvent?.stopPropagation?.(); mode === 'hapus' && running ? onDelete(p.id) : onSelect(p.id) }, dragend: (e) => { const ll = e.target.getLatLng(); onMove && onMove(p.id, { lat: ll.lat - dLat, lng: ll.lng }) } }} />
       ))}
+      {project.crossings.map((c) => (
+        <Marker key={c.id} position={[c.lat, c.lng]} icon={crossIcon(c.type, s)} draggable={!!onMove} eventHandlers={{ click: () => mode === 'hapus' && onDelete(c.id, true), dragend: (e) => onMove && onMove(c.id, e.target.getLatLng(), true) }} />
+      ))}
+      {calPts.map((q, i) => <CircleMarker key={i} center={[q.lat, q.lng]} radius={7} pathOptions={{ color: '#fff', weight: 2, fillColor: '#E11D2E', fillOpacity: 1 }} />)}
+      {calPts.length === 2 && <Polyline positions={calPts.map((q) => [q.lat, q.lng])} pathOptions={{ color: '#E11D2E', weight: 2, dashArray: '6 6' }} />}
       {pin && <Marker position={[pin.lat, pin.lng]} icon={pinIcon(pin.nama)} zIndexOffset={1000} />}
       {gpsPos && <CircleMarker center={[gpsPos.lat, gpsPos.lng]} radius={8} pathOptions={{ color: '#fff', weight: 3, fillColor: '#0B6AA6', fillOpacity: 1 }} />}
     </MapContainer>

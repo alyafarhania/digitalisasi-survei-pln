@@ -8,7 +8,7 @@ export function spans(points) { return points.slice(1).map((p, i) => Math.round(
    ctx = { getKons(kode, jalur) -> {items:[{u,s,v,hss,khs,gol}]}, tiang: {nama:{sat,hss,khs}}, konduktor: {nama:{sat,hss,khs}} }
    Harga KHS kosong dibiarkan kosong (PRD). */
 export function hitungRab(project, ctx) {
-  const { points = [], rabOpt = {}, priceEdits = {}, jalur } = project
+  const { points = [], pointsBongkar = [], rabOpt = {}, priceEdits = {}, jalur } = project
   const harga = rabOpt.harga || 'HSS', jenis = rabOpt.jenis || 'Total'
   const pick = (it, key) => {
     if (priceEdits[key] != null && priceEdits[key] !== '') return Number(priceEdits[key])
@@ -25,11 +25,17 @@ export function hitungRab(project, ctx) {
     return { nama, sat: m.sat || 'Btg', vol, price, total: price == null ? null : price * vol, gol: m.gol || 'MDU' }
   }) })
 
-  const kCount = {}
-  points.forEach((p) => { if (p.kode || p.kodeManual) { const k = p.kodeManual || p.kode; kCount[k] = (kCount[k] || 0) + 1 } })
+  // Konstruksi baru: satu titik boleh punya beberapa konstruksi. Utama = kode otomatis/manual dari belokan (kelompok jalur),
+  // tambahan = p.konsBaru [{ kode, grup }] (mis. konstruksi JTR pada tiang eksisting). Dihitung per (kelompok, kode).
+  const kCount = new Map()
+  const tambah = (grup, kode) => { if (!kode) return; const key = grup + '|' + kode, e = kCount.get(key) || { grup, kode, n: 0 }; e.n++; kCount.set(key, e) }
+  points.forEach((p) => {
+    tambah(jalur, p.kodeManual || p.kode)
+    ;(p.konsBaru || []).forEach((x) => tambah(x.grup || jalur, x.kode))
+  })
   const B = []
-  Object.entries(kCount).forEach(([kode, n]) => {
-    const k = ctx.getKons(kode, jalur); if (!k) return
+  kCount.forEach(({ grup, kode, n }) => {
+    const k = ctx.getKons(kode, grup); if (!k) return
     k.items.forEach((it) => {
       if (!pass(it.gol)) return
       const vol = (Number(it.v) || 0) * n, price = pick(it, it.u)
@@ -57,7 +63,8 @@ export function hitungRab(project, ctx) {
 
   // E. pembongkaran — biaya hanya upah bongkar (konstruksi lama tidak ada biaya)
   const bc = {}
-  points.forEach((p) => p.konsBongkar && (bc[p.konsBongkar] = (bc[p.konsBongkar] || 0) + 1))
+  // titik pada jalur pembongkaran (ungu) ikut dihitung bersama konstruksi bongkar di jalur pemasangan
+  ;[...points, ...pointsBongkar].forEach((p) => p.konsBongkar && (bc[p.konsBongkar] = (bc[p.konsBongkar] || 0) + 1))
   const E = []
   Object.entries(bc).forEach(([kode, n]) => {
     const b = ctx.getKons(kode, jalur)?.bongkar; if (!b) return

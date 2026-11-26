@@ -54,23 +54,24 @@ bentuk objek `user` **sama persis** dengan yang dipakai UI.
 
 ### 2.1 Peran dan izin
 
-| Izin | admin | perencana | surveyor | manajer |
-|---|:-:|:-:|:-:|:-:|
-| `project:create` (buat, salin) | ✔ | ✔ | ✔ | ✖ |
-| `project:edit:any` (ubah project siapa pun) | ✔ | ✔ | ✖ | ✖ |
-| `project:edit` (ubah project **buatan sendiri**) | ✔ | ✔ | ✔ | ✖ |
-| `project:finalize` | ✔ | ✔ | ✖ | ✖ |
-| `project:reopen` (Final → Draft) | ✔ | ✔ | ✖ | ✖ |
-| `project:delete` (hapus project mana pun) | ✔ | ✖ | ✖ | ✖ |
-| `project:delete:own` (hapus **draft** buatan sendiri) | – | – | ✔ | ✖ |
-| `project:export` | ✔ | ✔ | ✔ | ✔ |
-| `audit:view` (lihat riwayat) | ✔ | ✔ | ✖ | ✔ |
-| Membaca (list, detail, foto) | ✔ | ✔ | ✔ | ✔ |
+| Izin | surveyor | asman (Asman/MULP) |
+|---|:-:|:-:|
+| `project:create` (buat, salin) | ✔ | ✖ |
+| `project:edit:any` (ubah/koreksi project siapa pun) | ✖ | ✔ |
+| `project:edit` (ubah project **buatan sendiri**) | ✔ | ✔ |
+| `project:finalize` | ✖ | ✔ |
+| `project:reopen` (Final → Draft) | ✖ | ✔ |
+| `project:delete:own` (hapus **draft** buatan sendiri) | ✔ | ✖ |
+| `project:export` | ✔ | ✔ |
+| `audit:view` (lihat riwayat) | ✖ | ✔ |
+| Membaca (list, detail, foto) | ✔ | ✔ |
+
+Hanya ada dua peran: **surveyor** (melakukan survei) dan **asman** (finalisasi hasil survei).
 
 Aturan turunan (harus **ditegakkan di server**, UI hanya menyembunyikan tombol):
 
 1. Project berstatus `Selesai` **terkunci untuk semua peran** (tidak bisa diubah/ditambah foto/dihapus-foto) sampai `reopen`.
-   Hanya admin yang boleh menghapus project Final.
+   Project Final tidak dapat dihapus oleh peran mana pun.
 2. "Milik sendiri" = `createdBy.id == user.id`. Project lama tanpa `createdBy` dianggap milik semua surveyor.
 3. Pelaku pada `createdBy`, `finalizedBy`, `lastEditedBy`, dan `audit[].by` **selalu diambil dari sesi server**, bukan dari body klien
    (klien mengirimnya hanya agar mode mock bekerja — abaikan/timpa).
@@ -84,12 +85,12 @@ Request `{ "email": "surveyor@pln.test", "password": "…" }` → `200`
 { "user": { "id": "u-surveyor", "email": "surveyor@pln.test", "name": "Agus Santoso", "role": "surveyor" } }
 ```
 `401 { error: "Email atau kata sandi salah.", code: "INVALID_CREDENTIALS" }` — pesan **sama** untuk email tak dikenal dan sandi salah. Set cookie sesi.
-`role` ∈ `admin | perencana | surveyor | manajer`. Jangan mengembalikan `password`/hash.
+`role` ∈ `surveyor | asman`. Jangan mengembalikan `password`/hash.
 
 #### `GET /api/auth/me` → `200 { user }` atau `401`. Dipanggil saat aplikasi dibuka untuk memulihkan sesi.
 #### `POST /api/auth/logout` → `204`. Hapus cookie.
 
-Akun demo (data awal, sandi di-hash di DB): `admin@pln.test`, `perencana@pln.test`, `surveyor@pln.test`, `surveyor2@pln.test`, `manajer@pln.test`
+Akun demo (data awal, sandi di-hash di DB): `surveyor@pln.test`, `surveyor2@pln.test`, `asman@pln.test`
 (sandi lihat [`src/lib/auth.js`](../src/lib/auth.js) — **jangan** dibawa ke produksi).
 
 ## 3. Data master (baca saja)
@@ -167,9 +168,9 @@ Ini bentuk yang dikirim dan diterima frontend. **Server-owned** = klien boleh me
   // ---- audit (SERVER-OWNED, lihat §2.1 aturan 3-4) ----
   "createdBy":    { "id": "u-surveyor", "name": "Agus Santoso", "role": "surveyor" },
   "createdAt":    "2026-11-18T08:00:00.000Z",
-  "lastEditedBy": { "id": "u-perencana", "name": "Bagus Prasetyo", "role": "perencana" },
+  "lastEditedBy": { "id": "u-asman", "name": "Bagus Prasetyo", "role": "asman" },
   "lastEditedAt": "2026-11-19T10:21:00.000Z",
-  "finalizedBy":  { "id": "u-perencana", "name": "Bagus Prasetyo", "role": "perencana" },   // hanya ada bila status = Selesai
+  "finalizedBy":  { "id": "u-asman", "name": "Bagus Prasetyo", "role": "asman" },   // hanya ada bila status = Selesai
   "finalizedAt":  "2026-11-19T11:00:00.000Z",
   "audit": [ { "id": "uuid", "action": "created", "by": { "id": "…", "name": "…", "role": "…" }, "at": "…", "note": "opsional" } ]
 }

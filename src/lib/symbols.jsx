@@ -32,8 +32,8 @@ export const lineSymOf = (konduktor) => {
   return k ? garisSimbol(k.kelompok_garis, k.fasa) : 'jtm3'
 }
 
-export function Sym({ t, s = 'baru', x = 0, y = 0, k = 1 }) {
-  return <g transform={`translate(${x},${y}) scale(${k})`} dangerouslySetInnerHTML={{ __html: inner(t, s) }} />
+export function Sym({ t, s = 'baru', x = 0, y = 0, k = 1, n }) {
+  return <g data-xl={n} transform={`translate(${x},${y}) scale(${k})`} dangerouslySetInnerHTML={{ __html: inner(t, s) }} />
 }
 export const SymInline = ({ t, s = 'baru', w = 54, h = 20 }) => (
   <svg width={w} height={h} viewBox="-27 -10 54 20"><Sym t={t} s={s} /></svg>

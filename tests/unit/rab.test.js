@@ -64,3 +64,16 @@ describe('kolomOf & spans', () => {
 describe('terbilang', () => {
   it.each([[0, 'Nol Rupiah'], [11, 'Sebelas Rupiah'], [25, 'Dua Puluh Lima Rupiah'], [100, 'Seratus Rupiah'], [1500, 'Seribu Lima Ratus Rupiah'], [2000, 'Dua Ribu Rupiah'], [1250000, 'Satu Juta Dua Ratus Lima Puluh Ribu Rupiah'], [113907805, 'Seratus Tiga Belas Juta Sembilan Ratus Tujuh Ribu Delapan Ratus Lima Rupiah']])('%i', (n, t) => expect(terbilang(n)).toBe(t))
 })
+
+describe('konstruksi ganda per titik (konsBaru)', () => {
+  const dua = { ...ctx, getKons: (k) => KONS[k] }
+  it('konstruksi JTR tambahan pada tiang eksisting masuk Konstruksi Baru tanpa menggantikan konstruksi yang ada', () => {
+    const base = proj(), p = proj({ points: base.points.map((x, i) => (i === 0 ? { ...x, kondisi: 'Eksisting', konsBaru: [{ id: 'a', grup: 'J', kode: 'CC1' }] } : x)) })
+    const a = hitungRab(base, dua), b = hitungRab(p, dua)
+    expect(item(a, 'B', 'Isolator')).toMatchObject({ vol: 6, unit: 2 })
+    expect(item(b, 'B', 'Isolator')).toMatchObject({ vol: 9, unit: 3 })   // 2 titik utama + 1 tambahan
+    expect(item(b, 'A', 'Tiang A').vol).toBe(2)                              // jumlah tiang tidak berubah
+    expect(item(b, 'E', 'Upah Bongkar CC1').vol).toBe(1)                     // konstruksi bongkar tidak tergantikan
+  })
+  it('titik tanpa konsBaru tidak berubah (kompatibel dengan project lama)', () => expect(hitungRab(proj(), dua).grand).toBeCloseTo(28603.035))
+})

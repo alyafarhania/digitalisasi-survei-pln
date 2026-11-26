@@ -2,7 +2,7 @@
 // dan web (cadangan jika data simbol dari server belum ada).
 export const C_BARU = '#E31E24'     // Baru = merah
 export const C_EKS = '#3B1D6E'      // Eksisting = ungu tua (permintaan pengguna)
-export const C_BONGKAR = '#8A8F98'  // Bongkar = abu-abu (placeholder, PRD: bentuk belum ditentukan)
+export const C_BONGKAR = '#9B30D9'  // Bongkar = ungu (jalur & simbol pembongkaran)
 export const C_NET = '#1D6FD6'
 export const colorOfStatus = (s) => (s === 'baru' ? C_BARU : s === 'eksisting' ? C_EKS : C_BONGKAR)
 

@@ -55,7 +55,4 @@ test.describe('Material & RAB', () => {
   test('panduan RAB dilipat di atas (tabel memakai lebar penuh)', async ({ page }) => {
     await open(page); await expect(page.locator('.guide-d')).toBeHidden(); await expect(page.locator('.guide-m summary')).toBeVisible()
   })
-  test('lihat-saja: harga tidak bisa diubah oleh manajer', async ({ page }) => {
-    await seed(page, 'manajer', { projects: [projectDoc()] }); await page.goto('/project/kode0001ab/rab'); await expect(page.getByTestId('harga-input').first()).toBeDisabled(); await expect(page.getByTestId('slo-switch')).toBeDisabled()
-  })
 })

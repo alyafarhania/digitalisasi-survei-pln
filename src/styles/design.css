@@ -348,3 +348,71 @@ fieldset.ro:disabled{opacity:.72}fieldset.ro:disabled .leaflet-container{cursor:
 .modal-f,.modal-f.stack{display:flex;flex-direction:row-reverse;gap:10px;justify-content:space-between;align-items:stretch}
 .modal-f .btn,.modal-f.stack .btn{flex:1 1 0;width:auto;height:auto;min-height:44px;padding:8px 14px;white-space:normal;line-height:1.25;text-align:center}
 .modal-f>:only-child{flex:0 1 auto;margin-left:auto}
+
+/* ===== Login: pilihan peran (Surveyor / Asman-MULP) ===== */
+.rolepick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 16px}
+.rolepick button{display:flex;flex-direction:column;gap:2px;align-items:flex-start;text-align:left;padding:10px 12px;border:1.5px solid var(--line-strong);border-radius:12px;background:var(--surface);color:var(--text);font:inherit;cursor:pointer;transition:.15s}
+.rolepick button b{font-size:14px;color:var(--primary-ink)}.rolepick button small{font-size:11.5px;color:var(--muted);line-height:1.3}
+.rolepick button:hover{border-color:var(--primary)}
+.rolepick button.on{border-color:var(--primary);background:var(--primary-soft);box-shadow:0 0 0 3px rgba(10,108,181,.14)}
+
+/* ===== Konstruksi baru tambahan pada satu titik ===== */
+.kb{border:1px dashed var(--line-strong);border-radius:12px;padding:10px 12px;background:var(--bg)}
+.kb>label{display:flex;gap:8px;align-items:center}.kb-n{font-weight:500;color:var(--muted);font-size:12px}
+.kb-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.kb-list li{display:inline-flex;align-items:center;gap:6px;background:#FDECEE;border:1px solid #F3B7BC;color:#9B1520;border-radius:999px;padding:3px 4px 3px 10px;font-size:12px}
+.kb-list li b{font-size:12.5px}.kb-list li span{color:#B4545C}
+.kb-x{display:grid;place-items:center;width:20px;height:20px;border:0;border-radius:50%;background:rgba(155,21,32,.12);color:#9B1520;cursor:pointer}
+.kb-x:hover{background:rgba(155,21,32,.25)}
+.kb-actions{display:flex;gap:8px;flex-wrap:wrap}
+.kb-form{display:grid;gap:8px}
+.pole i.pole-kb{position:absolute;right:-7px;top:-7px;display:grid;place-items:center;padding:0 3px;border-radius:999px;background:#E31E24;color:#fff;font-style:normal;font-weight:700;line-height:1;border:1.5px solid #fff;box-sizing:border-box}
+
+/* ===== Peta offline unggahan ===== */
+.btn.on{border-color:var(--primary);color:var(--primary);background:var(--primary-soft)}
+.po-panel{display:grid;gap:12px}
+.po-info{display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-size:13px}.po-info span{color:var(--muted);font-size:12px;white-space:nowrap}
+.po-info b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.po-row{display:flex;gap:8px;align-items:center}.po-row .rin{flex:1;min-width:0}
+.po-panel .seg{display:grid;grid-template-columns:1fr 1fr}
+.map.map-offline{background:#EEF1F4}
+
+/* ===== Halaman Peta & Tagging: peta lebih luas, kontrol lebih ringkas ===== */
+.rbody.peta{max-width:none;padding-right:0}
+.rbody.peta .rmain{padding:10px 12px calc(var(--foot) + 18px + env(safe-area-inset-bottom))}
+.rbody.peta .guide-m{margin:8px 12px 0}
+.rbody.peta .pg-h{margin-bottom:8px}.rbody.peta .pg-h h1{font-size:18px}
+.rbody.peta .pg-h .btn{height:34px;min-height:34px;font-size:12.5px;padding:0 12px}
+@media(min-width:1024px){
+  .rbody.peta .rmain{padding:12px 20px calc(var(--foot) + 20px)}
+  .rbody.peta .rmain .split .rmap{height:clamp(500px,calc(100svh - var(--hdr) - var(--stepbar) - var(--foot) - 118px),1000px)}
+}
+@media(max-width:1023px){.rbody.peta .rmain .split .rmap{height:calc(100svh - var(--hdr) - var(--stepbar) - var(--foot) - 120px);min-height:420px}}
+/* centang & kotak panduan di halaman ini dikecilkan */
+.rbody.peta .gmark{width:15px;height:15px;border-radius:4px;border-width:1.5px;margin-top:2px}
+.rbody.peta .gmark svg{width:10px;height:10px}
+.rbody.peta .gitem{gap:7px;padding:4px 4px;font-size:12.5px}
+.rbody.peta .guide-m summary{padding:8px 12px;font-size:13px}
+.rbody.peta .guide-list em{font-size:11px}
+.rbody.peta .guide-tip{font-size:12px;padding:8px 10px}
+@media(min-width:640px){
+  .rmap .map-top{top:8px;left:8px;right:8px;gap:6px}
+  .rmap .msearch{flex:0 1 340px}
+  .rmap .msearch input{height:34px;font-size:13px;padding-left:32px}
+  .rmap .msearch svg{left:9px;top:9px;width:16px;height:16px}
+  .rmap .mtools button,.rmap .mtools select{height:34px;font-size:12px;padding:0 9px}
+  .rmap .map-layer{top:8px;right:8px}
+  .rmap .map-layer button{padding:7px 12px;font-size:12px}
+  .rmap .map-zoom{left:8px;top:52px}.rmap .map-zoom button{width:32px;height:32px}
+  .rmap .map-bar{left:8px;bottom:22px;padding:4px 6px}
+  .rmap .map-bar .btn{height:28px;min-height:28px;font-size:12px;padding:0 10px}
+  .rmap .map-ctrl{right:8px;bottom:22px}.rmap .fab{width:38px;height:38px}
+  .rmap .chip.live{top:52px;font-size:12px;padding:4px 10px}
+}
+.rmap .pin-cari span{font-size:12.5px}
+
+/* Pilihan jalur tagging: pemasangan (merah) / pembongkaran (ungu) */
+.mtools.jalurbar{margin-top:0}
+.mtools button i.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;border:1.5px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+.mtools button.on.bongkar{background:#9B30D9}
+.gp-h + table.lg td svg{display:block;margin:0 auto}

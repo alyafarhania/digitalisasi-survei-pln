@@ -3,15 +3,18 @@ import { useApp, isTajam } from '../store'
 import { Icon } from '../components/ui'
 import Empty from './Empty'
 import { Sym, LEGEND, C_BARU, C_EKS } from '../lib/symbols'
+import { JALUR_LEGEND } from '../lib/gambarSvg'
 import { RIGHT, buatSkema, ringkasPasang } from '../lib/skema'
 import { GambarSvg } from '../lib/gambarSvg'
 import { gambarPng } from '../lib/gambarPng'
+import { exportExcel } from '../lib/exportExcel'
+import { petaAktif, useGambarPeta } from '../lib/petaOffline'
 
 // F4 + F5 — gambar skematik mengikuti sheet GAMBAR di Excel (merah = baru, ungu tua = eksisting)
 function Inner({ go }) {
   const { active: p, update, markGuide } = useApp()
   const pts = p.points
-  const sk = buatSkema(p)
+  const sk = buatSkema(p), { url: bgUrl } = useGambarPeta(petaAktif(p))
   const VW = RIGHT - 10, dekat = sk.dekat
   const svgRef = useRef(null), drag = useRef(null)
 
@@ -39,15 +42,16 @@ function Inner({ go }) {
         <div className="actions">
           <button className="btn ghost" onClick={() => update(p.id, (x) => ({ ...x, labelPos: {} }))}>Atur ulang otomatis</button>
           <button className="btn ghost" onClick={unduhPng}><Icon n="download" size={16} /> Unduh PNG</button>
+          <button className="btn ghost" onClick={async () => { try { await exportExcel(p, { rab: false }) } catch { /* gagal: abaikan */ } }} title="Gambar sebagai bentuk Excel yang bisa diedit (garis, titik, simbol, teks, legenda)"><Icon n="download" size={16} /> Unduh Excel</button>
         </div>
       </div>
       {pts.some((x) => isTajam(p, x)) && <div className="warn"><Icon n="x" size={16} /><span>Ada belokan terlalu tajam, sudut dalam &lt; 90° ({pts.filter((x) => isTajam(p, x)).map((x) => x.nomor).join(', ')}). Garis jalur diberi warna oranye; periksa kode konstruksi atau posisi titik.</span></div>}
       {dekat.length > 0 && <div className="warn"><Icon n="x" size={16} /><span>Titik {dekat.join(', ')} sangat berdekatan dengan titik sebelumnya di gambar. Kotak keterangannya bisa digeser manual.</span></div>}
       <div className="gsheet2">
         <div className="gdraw">
-          {pts.length < 2 && <p className="empty" style={{ padding: 12 }}>Tandai minimal 2 titik di halaman Peta &amp; Tagging untuk membuat gambar.</p>}
+          {Math.max(pts.length, (p.pointsBongkar || []).length) < 2 && <p className="empty" style={{ padding: 12 }}>Tandai minimal 2 titik di halaman Peta &amp; Tagging untuk membuat gambar.</p>}
           <div className="scroll-x">
-            <GambarSvg p={p} sk={sk} svgRef={svgRef} onDown={onDown} onMove={onMove} onUp={onUp} />
+            <GambarSvg p={p} sk={sk} svgRef={svgRef} onDown={onDown} onMove={onMove} onUp={onUp} bgUrl={bgUrl} />
           </div>
         </div>
         <aside className="gpanel">
@@ -58,7 +62,11 @@ function Inner({ go }) {
               <tr key={t}><td>{i + 1}</td><td>{nama}</td>
                 <td><svg width="46" height="18" viewBox="-23 -9 46 18"><Sym t={t} s="baru" x={0} y={0} k={0.8} /></svg></td>
                 <td><svg width="46" height="18" viewBox="-23 -9 46 18"><Sym t={t} s="eksisting" x={0} y={0} k={0.8} /></svg></td></tr>
-            ))}</tbody></table>
+            ))}
+              {JALUR_LEGEND.map(([nama, warna], j) => (
+                <tr key={nama}><td>{LEGEND.length + j + 1}</td><td>{nama}</td>
+                  <td colSpan={2}><svg width="92" height="18" viewBox="0 0 92 18"><line x1="8" y1="9" x2="84" y2="9" stroke={warna} strokeWidth="2.6" /></svg></td></tr>
+              ))}</tbody></table>
           <div className="gp-h">Bongkar Pasang Konstruksi :</div>
           <table className="lg"><thead><tr><th colSpan={3} style={{ color: C_BARU }}>Pasang</th><th colSpan={3} style={{ color: C_EKS }}>Bongkar</th></tr></thead>
             <tbody>{Array.from({ length: Math.max(8, pasang.length, bongkar.length) }).map((_, i) => {

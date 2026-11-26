@@ -62,11 +62,9 @@ cd digitalisasi-survei-pln
 
    | Peran | Email | Sandi |
    |---|---|---|
-   | Admin UP3 | `admin@pln.test` | `admin123` |
-   | Perencana | `perencana@pln.test` | `perencana123` |
+   | Asman/MULP | `asman@pln.test` | `asman123` |
    | Surveyor | `surveyor@pln.test` | `surveyor123` |
-   | Manajer (lihat saja) | `manajer@pln.test` | `manajer123` |
-
+   
 7. **Berhenti / lanjut / bersihkan**
    ```powershell
    docker compose down          # berhenti (data database tetap)
@@ -173,5 +171,5 @@ Semuanya sekaligus (unit + E2E): `npm run test:all`.
 | Login terus dikembalikan ke halaman masuk | Cookie/penyimpanan situs diblokir. Izinkan penyimpanan lokal untuk situs ini, atau pakai jendela non-incognito. |
 | E2E: `browserType.launch: Executable doesn't exist` | Jalankan `npx playwright install chromium`. |
 | E2E lambat/gagal pertama kali | `next dev` mengompilasi halaman saat pertama dibuka. Jalankan ulang, atau uji server Docker (`E2E_BASE_URL`). |
-| Peta abu-abu | Perlu internet (ubin OpenStreetMap/Esri). Untuk offline, unduh area dulu di menu **Offline & Sinkron**. |
+| Peta abu-abu | Perlu internet (ubin CARTO/Esri). Untuk offline, unduh area dulu di menu **Offline & Sinkron**, atau unggah gambar peta (mis. Satplant) lewat tombol **Unggah peta offline** di halaman Peta. |
 | Data hilang setelah ganti browser | Data mock tersimpan **per browser**. Itu normal pada tahap mock; backend akan menyimpannya di PostgreSQL. |

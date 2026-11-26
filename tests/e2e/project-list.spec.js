@@ -19,8 +19,8 @@ test.describe('Daftar project', () => {
     await expect(a).not.toContainText('Difinalisasi')
   })
   test('filter cepat: setiap filter menampilkan jumlahnya dan menyaring daftar', async ({ page }) => {
-    const ps = [projectDoc({ n: 1 }), projectDoc({ n: 2 }), projectDoc({ n: 3 }), projectDoc({ n: 4, status: 'Selesai', finalizedBy: { id: 'u-admin', name: 'Dewi Kartika', role: 'admin' }, finalizedAt: '2026-11-18T10:00:00.000Z' }), projectDoc({ n: 5, version: 0, dirty: true })]
-    await offlineFromStart(page); await seed(page, 'admin', { projects: ps }); await page.goto('/')
+    const ps = [projectDoc({ n: 1 }), projectDoc({ n: 2 }), projectDoc({ n: 3 }), projectDoc({ n: 4, status: 'Selesai', finalizedBy: { id: 'u-asman', name: 'Dewi Kartika', role: 'asman' }, finalizedAt: '2026-11-18T10:00:00.000Z' }), projectDoc({ n: 5, version: 0, dirty: true })]
+    await offlineFromStart(page); await seed(page, 'asman', { projects: ps }); await page.goto('/')
     await expect(count(page, 'semua')).toHaveText('5'); await expect(count(page, 'draft')).toHaveText('4'); await expect(count(page, 'final')).toHaveText('1'); await expect(count(page, 'sinkron')).toHaveText('4'); await expect(count(page, 'belum')).toHaveText('1')
     await page.locator('.qf-i.final').click(); await expect(cards(page)).toHaveCount(1); await expect(page).toHaveURL(/status=final/)
     await page.locator('.qf-i.belum').click(); await expect(cards(page)).toHaveCount(1); await expect(card(page, 'PABRIK UJI 5')).toBeVisible()

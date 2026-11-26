@@ -37,3 +37,13 @@ export function pickKode(sudut, grup) {
   return hit ? hit.kode : null
 }
 export const kodeList = (grup) => MASTER.konstruksi.filter((k) => k.grup === grup).map((k) => k.kode)
+
+// Konstruksi tambahan pada satu titik (kategori Konstruksi Baru): mis. JTR di tiang eksisting.
+export const grupJtr = (jenisTiang = '') => (/besi/i.test(jenisTiang) ? 'KONSTRUKSI JTR PADA TIANG BESI' : 'KONSTRUKSI JTR PADA TIANG BETON')
+export const grupList = () => [...new Set(MASTER.konstruksi.map((k) => k.grup))]
+export const grupLabel = (g = '') => {
+  const t = g.replace(/^KONSTRUKSI /, '').replace(/ PADA TIANG (BETON|BESI)$/, ' · Tiang $1').replace(/ \(.*\)$/, '').toLowerCase()
+  const k = t.charAt(0).toUpperCase() + t.slice(1)
+  return k.replace(/\b(jtm|jtr|app|tr|tm|sktm|skutm|lvcb|exim|guy)\b/gi, (m) => m.toUpperCase()).replace(/ · tiang (beton|besi)/i, (_, x) => ' · Tiang ' + x[0].toUpperCase() + x.slice(1).toLowerCase())
+}
+export const kodeOptions = (grup) => MASTER.konstruksi.filter((k) => k.grup === grup).map((k) => ({ v: k.kode, l: k.desc ? `${k.kode} — ${k.desc}` : k.kode }))

@@ -54,7 +54,7 @@ export async function mockCall(method, path, body, opts = {}) {
     const src = db.projects[m[1]]; if (!src) throw err(404, 'Project tidak ditemukan')
     const kode = newKode(), id = crypto.randomUUID()
     const by = body?.by || { id: 'system', name: 'Sistem', role: 'system' }, at = body?.at || new Date().toISOString()
-    db.projects[kode] = { ...structuredClone(src), id, kode, nama: src.nama + ' (salinan)', nomor: (src.nomor || '') + '-SALIN', status: 'Draft', version: 1, updatedAt: at, points: src.points.map((t) => ({ ...t, id: crypto.randomUUID() })),
+    db.projects[kode] = { ...structuredClone(src), id, kode, nama: src.nama + ' (salinan)', nomor: (src.nomor || '') + '-SALIN', status: 'Draft', version: 1, updatedAt: at, points: src.points.map((t) => ({ ...t, id: crypto.randomUUID() })), pointsBongkar: (src.pointsBongkar || []).map((t) => ({ ...t, id: crypto.randomUUID() })),
       guide: {}, createdBy: by, createdAt: at, lastEditedBy: by, lastEditedAt: at, finalizedBy: undefined, finalizedAt: undefined,
       audit: [{ id: crypto.randomUUID(), action: 'copied', by, at, note: `Salinan dari ${src.nomor}` }] }
     write(db); return db.projects[kode]

@@ -50,9 +50,6 @@ test.describe('Foto lokasi', () => {
     await open(page, 'surveyor', {}); await expect(page.locator('.ph-miss')).toHaveCount(1); await expect(page.locator('.photos img')).toHaveCount(0)
     await thumbs(page).first().click(); await expect(page.locator('.lb-empty')).toContainText('belum tersedia')
   })
-  test('manajer (lihat saja): tidak ada tambah/hapus foto', async ({ page }) => {
-    await open(page, 'manajer', {}); await expect(page.locator('.ph.add')).toHaveCount(0); await thumbs(page).first().click(); await expect(page.getByRole('button', { name: 'Hapus foto' })).toHaveCount(0)
-  })
   test('foto bisa ditambah oleh pemilik lewat tombol "Tambah foto"', async ({ page }) => {
     await open(page); await expect(page.getByRole('button', { name: 'Tambah foto' })).toBeVisible()
   })

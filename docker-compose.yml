@@ -1,63 +1,50 @@
-# Jalankan:  cp .env.example .env && docker compose up --build -d      Buka: http://localhost:8080
-# Tahap sekarang: UI memakai data MOCK (DATA_MODE=mock). PostgreSQL sudah berjalan dan skemanya terpasang,
-# siap dipakai saat route handler backend dibuat.
-name: survei-pln
-
+# Jalankan:  docker compose up --build
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DB_USER:-pln}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?isi DB_PASSWORD di file .env}
-      POSTGRES_DB: ${DB_NAME:-pln}
+      POSTGRES_USER: pln
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-pln}
+      POSTGRES_DB: pln
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./db/init:/docker-entrypoint-initdb.d:ro   # skema dijalankan otomatis saat volume masih kosong
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 3s
+      test: ["CMD-SHELL", "pg_isready -U pln -d pln"]
+      interval: 3s
       retries: 20
-    networks: [internal]
 
-  app:
+  api:
     build:
       context: .
-      args:
-        NEXT_PUBLIC_DATA_MODE: ${DATA_MODE:-mock}
+      dockerfile: server/Dockerfile
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://${DB_USER:-pln}:${DB_PASSWORD}@db:5432/${DB_NAME:-pln}
+      DATABASE_URL: postgres://pln:${DB_PASSWORD:-pln}@db:5432/pln
+      PORT: 3000
     depends_on:
       db:
         condition: service_healthy
-    networks: [internal]
-
-  nginx:
-    image: nginx:1.27-alpine
-    restart: unless-stopped
-    ports:
-      - "${HTTP_PORT:-8080}:80"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./nginx/certs:/etc/nginx/certs:ro
-    depends_on:
-      app:
-        condition: service_healthy
-    networks: [internal]
+      - ./data:/data:ro
 
-  adminer:            # opsional: docker compose --profile tools up -d
-    image: adminer:4
-    profiles: [tools]
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8081:8080"
-    depends_on: [db]
-    networks: [internal]
+      - "8080:80"
+    depends_on:
+      - api
 
-networks:
-  internal:
+  adminer:
+    image: adminer:4
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    depends_on:
+      - db
 
 volumes:
   pgdata:
