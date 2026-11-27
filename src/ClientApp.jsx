@@ -7,7 +7,13 @@ const App = dynamic(() => import('./App'), { ssr: false, loading: () => <div cla
 
 export default function ClientApp() {
   useEffect(() => {
-    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') navigator.serviceWorker.register('/sw.js').catch(() => {})
+    if (!('serviceWorker' in navigator)) return
+    if (process.env.NODE_ENV === 'production') navigator.serviceWorker.register('/sw.js').catch(() => {})
+    else {
+      // mode dev: buang service worker & cache sisa build produksi di alamat yang sama agar tidak menyajikan file lama
+      navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {})
+      if (window.caches) caches.keys().then((ks) => ks.forEach((k) => caches.delete(k))).catch(() => {})
+    }
   }, [])
   return <App />
 }
