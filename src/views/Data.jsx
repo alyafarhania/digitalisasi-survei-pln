@@ -23,7 +23,7 @@ export default function Data({ go, opt, onLeave }) {
   const simpan = () => {
     const { ulp, dayaLama, feeder, gi, subsistem, ...d } = f
     const kode = add({ ...d, nomor: d.nomor || undefined, daya: Number(d.daya) || 0,
-      meta: { noGambar: '', skala: '1 : 500', perihal: d.jenis, digambar: '', diperiksa: '', diketahui: '', disetujui: '', ulp, dayaLama, feeder, gi, subsistem } })
+      meta: { noGambar: '', skala: '1 : 2000', perihal: d.jenis, digambar: '', diperiksa: '', diketahui: '', disetujui: '', ulp, dayaLama, feeder, gi, subsistem } })
     go('peta', null, kode)
   }
   const first = p?.points?.[0]
@@ -40,23 +40,23 @@ export default function Data({ go, opt, onLeave }) {
       <div className="card">
         <div className="card-h"><h2>Informasi pekerjaan</h2><span className="sub">Kolom bertanda <i style={{ color: '#D32F2F', fontStyle: 'normal' }}>*</i> wajib diisi</span></div>
         <div className="card-b grid g2 g3">
-          <div className="fld full"><label>Nama calon pelanggan <i>*</i></label><input type="text" className="rin" value={val('nama')} placeholder="contoh PABRIK ROKOK HS PEDAN" onChange={(e) => set('nama', e.target.value)} /></div>
+          <div className="fld full"><label>Nama calon pelanggan <i>*</i></label><input type="text" className="rin" value={val('nama')} placeholder="Nama pelanggan" onChange={(e) => set('nama', e.target.value)} /></div>
           <div className="fld full"><label>Jenis pekerjaan <i>*</i></label>
             <div className="seg">{['Pasang Baru', 'Tambah Daya'].map((j) => <button type="button" key={j} className={val('jenis') === j ? 'on' : ''} onClick={() => set('jenis', j)}>{j}</button>)}</div></div>
-          {T('nomor', 'Nomor pekerjaan', { req: true, ph: 'contoh PB/2026/10/0053', hint: 'Mengikuti penomoran kantor, diisi manual.' })}
+          {T('nomor', 'Nomor pekerjaan', { req: true, ph: 'Nomor pekerjaan', hint: 'Mengikuti penomoran kantor, diisi manual.' })}
           <div className="fld"><label>Lokasi / ULP <i>*</i></label>
             <select value={val('ulp') || 'ULP Klaten'} onChange={(e) => set('ulp', e.target.value)}>{ULP.map((u) => <option key={u}>{u}</option>)}</select></div>
           <div className="fld"><label>Koordinat lokasi</label>
             <input type="text" className="rin" readOnly value={first ? `${first.lat.toFixed(6)}, ${first.lng.toFixed(6)}` : ''} placeholder="Belum ada titik" /><span className="hint">Terisi otomatis dari peta.</span></div>
-          <div className="fld full"><label>Alamat / lokasi pekerjaan <i>*</i></label><input type="text" className="rin" value={val('lokasi')} placeholder="Alamat, desa, kecamatan" onChange={(e) => set('lokasi', e.target.value)} /></div>
+          <div className="fld full"><label>Alamat / lokasi pekerjaan <i>*</i></label><input type="text" className="rin" value={val('lokasi')} placeholder="Alamat lokasi" onChange={(e) => set('lokasi', e.target.value)} /></div>
           <div className="fld"><label>Golongan tarif <i>*</i></label>
             <select value={val('tarif')} onChange={(e) => set('tarif', e.target.value)}>{MASTER.tarif.map((t) => <option key={t}>{t}</option>)}</select></div>
-          {T('daya', 'Daya baru (VA)', { req: true, num: true, ph: '1300' })}
-          {T('dayaLama', 'Daya lama (VA)', { num: true, ph: '—', hint: 'Khusus tambah daya.' })}
+          {T('daya', 'Daya baru (VA)', { req: true, num: true, ph: 'Daya baru' })}
+          {T('dayaLama', 'Daya lama (VA)', { num: true, ph: 'Daya lama', hint: 'Khusus tambah daya.' })}
           <div className="sec-t">Penyulang jaringan</div>
-          {T('feeder', 'Feeder', { ph: 'contoh PDN02' })}
-          {T('gi', 'Gardu Induk', { ph: 'contoh Pedan' })}
-          {T('subsistem', 'Sub sistem', { ph: 'contoh SS PEDAN' })}
+          {T('feeder', 'Feeder', { ph: 'Feeder' })}
+          {T('gi', 'Gardu Induk', { ph: 'Gardu induk' })}
+          {T('subsistem', 'Sub sistem', { ph: 'Sub sistem' })}
           {p && <div className="fld full"><label>Jenis jaringan (standar konstruksi)</label>
             <select value={p.jalur} onChange={(e) => update(p.id, { jalur: e.target.value })}>{GRUP_JALUR.map((g) => <option key={g} value={g}>{short(g)}</option>)}</select>
             <span className="hint">Menentukan kode konstruksi dan upah yang dipakai di gambar dan RAB.</span></div>}

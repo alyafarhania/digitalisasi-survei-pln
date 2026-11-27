@@ -14,6 +14,7 @@ const paths = {
   minus: 'M5 12h14',
   chevL: 'M15 6l-6 6 6 6',
   chevR: 'M9 6l6 6-6 6',
+  chevD: 'M6 9l6 6 6-6',
   download: 'M12 3v12m0 0-4-4m4 4 4-4M4 19h16',
   upload: 'M12 15V3m0 0L8 7m4-4 4 4M4 19h16',
   camera: 'M4 8h3l2-3h6l2 3h3v11H4zM12 17a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z',

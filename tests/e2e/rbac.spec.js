@@ -25,7 +25,7 @@ test.describe('RBAC (mock): mode lihat saja di dalam project', () => {
   test('surveyor lain: project dibuka lihat-saja, isian terkunci, tanpa Simpan', async ({ page }) => {
     await seed(page, 'surveyor2', { projects: [projectDoc()] }); await page.goto('/'); await card(page, 'PABRIK UJI 1').getByRole('button', { name: 'Buka' }).click()
     await expect(page).toHaveURL(/\/project\/kode0001ab\/data/); await expect(page.getByText('Mode lihat saja').first()).toBeVisible(); await expect(page.locator('.alert.info')).toContainText('Agus Santoso')
-    await expect(page.getByPlaceholder(/^contoh PABRIK/)).toBeDisabled()
+    await expect(page.getByPlaceholder('Nama pelanggan')).toBeDisabled()
   })
   test('lihat-saja: semua langkah bisa dibuka dan Lanjut aktif walau langkah belum lengkap', async ({ page }) => {
     await seed(page, 'surveyor2', { projects: [projectDoc({ points: [], guide: {} })] }); await page.goto('/project/kode0001ab/data')
@@ -34,12 +34,12 @@ test.describe('RBAC (mock): mode lihat saja di dalam project', () => {
   })
   test('project Final terkunci untuk semua peran, termasuk asman/MULP', async ({ page }) => {
     await seed(page, 'asman', { projects: [projectDoc({ status: 'Selesai' })] }); await page.goto('/project/kode0001ab/data')
-    await expect(page.locator('.alert.info')).toContainText('Final'); await expect(page.getByPlaceholder(/^contoh PABRIK/)).toBeDisabled()
+    await expect(page.locator('.alert.info')).toContainText('Final'); await expect(page.getByPlaceholder('Nama pelanggan')).toBeDisabled()
   })
   test('peran tanpa izin ekspor tidak tersedia: semua peran demo memilikinya (matriks)', async () => {
     for (const u of Object.values(USERS)) expect(['asman', 'surveyor']).toContain(u.role)
   })
   test('surveyor pemilik tetap bisa mengubah (isian aktif)', async ({ page }) => {
-    await seed(page, 'surveyor', { projects: [projectDoc()] }); await page.goto('/project/kode0001ab/data'); await expect(page.getByPlaceholder(/^contoh PABRIK/)).toBeEnabled(); await expect(page.locator('.alert.info')).toHaveCount(0)
+    await seed(page, 'surveyor', { projects: [projectDoc()] }); await page.goto('/project/kode0001ab/data'); await expect(page.getByPlaceholder('Nama pelanggan')).toBeEnabled(); await expect(page.locator('.alert.info')).toHaveCount(0)
   })
 })

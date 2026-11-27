@@ -15,7 +15,7 @@ export function projectDoc(o = {}) {
   return {
     id: `id-${kode}`, kode, version: 1, dirty: false, localAt: Date.now() - n * 1000, nomor: `PB-2026-${String(n).padStart(3, '0')}`, nama: `PABRIK UJI ${n}`, jenis: 'Pasang Baru', lokasi: 'Jl. Uji, Klaten', tarif: 'R1', daya: 53000, status: 'Draft', tanggal: '2026-11-18',
     jalur: 'KONSTRUKSI JTM 3 FASA PADA TIANG BETON', points: [pt(0, -7.7059, 110.6012), pt(1, -7.7065, 110.6012), pt(2, -7.7071, 110.6012)], crossings: [],
-    meta: { noGambar: '001/PLN/2026', skala: '1 : 500', perihal: 'Pasang Baru', digambar: by.name, diperiksa: '', diketahui: '', disetujui: '' },
+    meta: { noGambar: '001/PLN/2026', skala: '1 : 2000', perihal: 'Pasang Baru', digambar: by.name, diperiksa: '', diketahui: '', disetujui: '' },
     rabOpt: { harga: 'HSS', jenis: 'Total', asal: 'Gudang UP3', slo: true }, priceEdits: {}, labelPos: {}, foto: [{ id: `${kode}-foto` }],
     guide: { 'peta:selesai': true, 'gambar:cek': true, 'rab:opsi': true, 'ekspor:unduh': true },
     createdBy: by, createdAt: '2026-11-18T08:00:00.000Z', lastEditedBy: by, lastEditedAt: '2026-11-18T09:30:00.000Z', audit: [{ id: `${kode}-a1`, action: 'created', by, at: '2026-11-18T08:00:00.000Z' }], ...rest,
@@ -65,7 +65,7 @@ export async function logout(page) { await page.locator('.uchip').click(); await
 // Buat project baru lewat formulir; berakhir di langkah Peta
 export async function createProject(page, { nama = 'PABRIK UJI', nomor = 'PB/2026/10/0053', alamat = 'Jl. Uji, Klaten', daya = '53000' } = {}) {
   await page.goto('/project/baru')
-  await page.getByPlaceholder(/^contoh PABRIK/).fill(nama); await page.getByPlaceholder(/^contoh PB\//).fill(nomor); await page.getByPlaceholder(/^Alamat/).fill(alamat); await page.getByPlaceholder('1300').fill(daya)
+  await page.getByPlaceholder('Nama pelanggan').fill(nama); await page.getByPlaceholder('Nomor pekerjaan').fill(nomor); await page.getByPlaceholder(/^Alamat/).fill(alamat); await page.getByPlaceholder('Daya baru').fill(daya)
   await page.getByRole('button', { name: /Simpan & Lanjut/ }).click(); await page.waitForURL(/\/project\/[\w-]+\/peta$/)
   return page.url().match(/\/project\/([\w-]+)\//)[1]
 }

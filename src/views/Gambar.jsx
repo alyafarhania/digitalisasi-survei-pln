@@ -2,9 +2,9 @@ import { useRef } from 'react'
 import { useApp, isTajam } from '../store'
 import { Icon } from '../components/ui'
 import Empty from './Empty'
-import { Sym, LEGEND, C_BARU, C_EKS } from '../lib/symbols'
+import { Sym, LEGEND, C_BARU, C_BONGKAR } from '../lib/symbols'
 import { JALUR_LEGEND } from '../lib/gambarSvg'
-import { RIGHT, buatSkema, ringkasPasang } from '../lib/skema'
+import { RIGHT, TABEL_BARIS, buatSkema, ringkasPasang } from '../lib/skema'
 import { GambarSvg } from '../lib/gambarSvg'
 import { gambarPng } from '../lib/gambarPng'
 import { exportExcel } from '../lib/exportExcel'
@@ -57,21 +57,21 @@ function Inner({ go }) {
         <aside className="gpanel">
           <div className="gp-t">PT. PLN ( PERSERO ) {p.meta.ulp ? p.meta.ulp.toUpperCase() : 'UP3 KLATEN'}</div>
           <div className="gp-h">Keterangan Gambar :</div>
-          <table className="lg"><thead><tr><th style={{ width: 34 }}>No</th><th>Nama Material</th><th style={{ width: 62 }}>Baru</th><th style={{ width: 62 }}>Eksisting</th></tr></thead>
+          <table className="lg leg"><thead><tr><th style={{ width: 26 }}>No</th><th>Nama Material</th><th style={{ width: 46 }}>Baru</th><th style={{ width: 46 }}>Eksisting</th></tr></thead>
             <tbody>{LEGEND.map(([nama, t], i) => (
               <tr key={t}><td>{i + 1}</td><td>{nama}</td>
-                <td><svg width="46" height="18" viewBox="-23 -9 46 18"><Sym t={t} s="baru" x={0} y={0} k={0.8} /></svg></td>
-                <td><svg width="46" height="18" viewBox="-23 -9 46 18"><Sym t={t} s="eksisting" x={0} y={0} k={0.8} /></svg></td></tr>
+                <td><svg width="38" height="14" viewBox="-19 -7 38 14"><Sym t={t} s="baru" x={0} y={0} k={0.62} /></svg></td>
+                <td><svg width="38" height="14" viewBox="-19 -7 38 14"><Sym t={t} s="eksisting" x={0} y={0} k={0.62} /></svg></td></tr>
             ))}
               {JALUR_LEGEND.map(([nama, warna], j) => (
                 <tr key={nama}><td>{LEGEND.length + j + 1}</td><td>{nama}</td>
-                  <td colSpan={2}><svg width="92" height="18" viewBox="0 0 92 18"><line x1="8" y1="9" x2="84" y2="9" stroke={warna} strokeWidth="2.6" /></svg></td></tr>
+                  <td colSpan={2}><svg width="76" height="14" viewBox="0 0 76 14"><line x1="6" y1="7" x2="70" y2="7" stroke={warna} strokeWidth="2.6" /></svg></td></tr>
               ))}</tbody></table>
           <div className="gp-h">Bongkar Pasang Konstruksi :</div>
-          <table className="lg"><thead><tr><th colSpan={3} style={{ color: C_BARU }}>Pasang</th><th colSpan={3} style={{ color: C_EKS }}>Bongkar</th></tr></thead>
-            <tbody>{Array.from({ length: Math.max(8, pasang.length, bongkar.length) }).map((_, i) => {
+          <table className="lg bp"><thead><tr><th colSpan={3} style={{ color: C_BARU }}>Pasang</th><th colSpan={3} style={{ color: C_BONGKAR }}>Bongkar</th></tr></thead>
+            <tbody>{Array.from({ length: Math.max(TABEL_BARIS, pasang.length, bongkar.length) }).map((_, i) => {
               const a = pasang[i], b = bongkar[i]
-              return <tr key={i}><td style={{ color: C_BARU }}>{a?.kode}</td><td style={{ color: C_BARU }}>{a?.sat}</td><td style={{ color: C_BARU }}>{a?.vol}</td><td style={{ color: C_EKS }}>{b?.kode}</td><td style={{ color: C_EKS }}>{b?.sat}</td><td style={{ color: C_EKS }}>{b?.vol}</td></tr>
+              return <tr key={i}><td style={{ color: C_BARU }}>{a?.kode}</td><td style={{ color: C_BARU }}>{a?.sat}</td><td style={{ color: C_BARU }}>{a?.vol}</td><td style={{ color: C_BONGKAR }}>{b?.kode}</td><td style={{ color: C_BONGKAR }}>{b?.sat}</td><td style={{ color: C_BONGKAR }}>{b?.vol}</td></tr>
             })}</tbody></table>
           <p className="req-note"><i className="star">*</i> wajib diisi sebelum langkah ini lengkap</p>
           <div className="gp-h">Keterangan Tambahan:</div>

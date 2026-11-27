@@ -157,7 +157,7 @@ Ini bentuk yang dikirim dan diterima frontend. **Server-owned** = klien boleh me
   "points":    [ Titik, … ],             // urutan array = urutan di jalur
   "crossings": [ Penyeberangan, … ],
   "meta": {                              // kotak judul gambar & data jaringan (semua string, boleh "")
-    "noGambar": "", "skala": "1 : 500", "perihal": "Pasang Baru", "digambar": "", "diperiksa": "", "diketahui": "", "disetujui": "",
+    "noGambar": "", "skala": "1 : 2000", "perihal": "Pasang Baru", "digambar": "", "diperiksa": "", "diketahui": "", "disetujui": "",
     "keterangan": "", "ulp": "ULP Klaten", "dayaLama": "", "feeder": "", "gi": "", "subsistem": ""
   },
   "rabOpt": { "harga": "HSS", "jenis": "Total", "asal": "Gudang UP3", "slo": true },

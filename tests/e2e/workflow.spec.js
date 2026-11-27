@@ -52,9 +52,9 @@ test.describe('Alur kerja 5 langkah', () => {
     await seed(page, 'surveyor'); await createProject(page); await page.locator('.rbrand').click(); await expect(page.locator('.modal')).toContainText('Keluar dari project ini?')
   })
   test('Kembali pada project baru: konfirmasi buang data', async ({ page }) => {
-    await seed(page, 'surveyor'); await page.goto('/project/baru'); await page.getByPlaceholder(/^contoh PABRIK/).fill('DATA SEMENTARA')
+    await seed(page, 'surveyor'); await page.goto('/project/baru'); await page.getByPlaceholder('Nama pelanggan').fill('DATA SEMENTARA')
     await page.getByRole('button', { name: 'Batal' }).click(); const m = page.locator('.modal'); await expect(m).toContainText('Batalkan project baru?'); await expect(m).toContainText('dibuang')
-    await m.getByRole('button', { name: 'Lanjut mengisi' }).click(); await expect(page).toHaveURL('/project/baru'); await expect(page.getByPlaceholder(/^contoh PABRIK/)).toHaveValue('DATA SEMENTARA')
+    await m.getByRole('button', { name: 'Lanjut mengisi' }).click(); await expect(page).toHaveURL('/project/baru'); await expect(page.getByPlaceholder('Nama pelanggan')).toHaveValue('DATA SEMENTARA')
     await page.locator('.backlink').click(); await page.getByRole('button', { name: 'Ya, buang data' }).click(); await expect(page).toHaveURL('/'); await expect(page.getByText('Belum ada project')).toBeVisible()
   })
   test('project Final: Kembali langsung ke daftar tanpa konfirmasi', async ({ page }) => {
@@ -92,7 +92,7 @@ test.describe('Alur kerja 5 langkah', () => {
     await page.goBack(); await expect(page).toHaveURL(/\/peta$/); await page.goBack(); await expect(page).toHaveURL(/\/data$/); await page.goForward(); await expect(page).toHaveURL(/\/peta$/)
   })
   test('Data pelanggan: ubah nama tersimpan di server tiruan dan tampil di daftar', async ({ page }) => {
-    await seed(page, 'surveyor', { projects: [projectDoc()] }); await page.goto('/project/kode0001ab/data'); await page.getByPlaceholder(/^contoh PABRIK/).fill('NAMA BARU'); await page.waitForTimeout(1200)
+    await seed(page, 'surveyor', { projects: [projectDoc()] }); await page.goto('/project/kode0001ab/data'); await page.getByPlaceholder('Nama pelanggan').fill('NAMA BARU'); await page.waitForTimeout(1200)
     await page.goto('/'); await expect(card(page, 'NAMA BARU')).toBeVisible(); await expect(card(page, 'NAMA BARU').locator('.paudit')).toContainText('Agus Santoso')
   })
   test('Simpan project tampil di langkah terakhir dan menyimpan sebagai tersinkron', async ({ page }) => {
@@ -100,8 +100,8 @@ test.describe('Alur kerja 5 langkah', () => {
     await page.getByRole('button', { name: 'Simpan project' }).click(); await expect(page.locator('.snack')).toContainText('tersimpan'); await expect(card(page, 'PABRIK UJI 1')).toContainText('Tersinkron')
   })
   test('offline: Simpan project menyimpan di perangkat lalu terkirim saat online', async ({ page, context }) => {
-    await seed(page, 'surveyor', { projects: [projectDoc()] }); await page.goto('/project/kode0001ab/data'); await expect(page.getByPlaceholder(/^contoh PABRIK/)).toBeVisible(); await context.setOffline(true)
-    await page.getByPlaceholder(/^contoh PABRIK/).fill('EDIT OFFLINE'); await stepBtn(page, 5).click(); await page.getByRole('button', { name: 'Simpan project' }).click()
+    await seed(page, 'surveyor', { projects: [projectDoc()] }); await page.goto('/project/kode0001ab/data'); await expect(page.getByPlaceholder('Nama pelanggan')).toBeVisible(); await context.setOffline(true)
+    await page.getByPlaceholder('Nama pelanggan').fill('EDIT OFFLINE'); await stepBtn(page, 5).click(); await page.getByRole('button', { name: 'Simpan project' }).click()
     await expect(page.locator('.snack')).toContainText('tersimpan di perangkat'); await expect(page.locator('.pill.sync')).toContainText(/Offline|menunggu/i)
     await context.setOffline(false); await expect(page.locator('.pill.sync')).toContainText('Tersinkron', { timeout: 15000 })
   })

@@ -20,9 +20,15 @@ export const GESER_BONGKAR_PX = 16
 export const geserBongkarLat = (z, lat) => (GESER_BONGKAR_PX * skalaMarker(z) * (156543.03392 * Math.cos((lat * Math.PI) / 180)) / 2 ** z) / 110574
 
 // Lapisan tile: cek penyimpanan offline dulu, baru jaringan. Tidak dipasang saat peta offline unggahan dipakai.
-function OfflineTiles({ layerKey }) {
+// Sumber tile tidak butuh API key. Bila sumber utama menolak (mis. 401/403 "API key" atau diblokir), setelah beberapa tile
+// berturut-turut gagal otomatis pindah ke sumber cadangan; bila semuanya gagal, onStatus('gagal') menampilkan pesan di peta.
+function OfflineTiles({ layerKey, onStatus, coba }) {
   const map = useMap()
+  const [si, setSi] = useState(0)
+  useEffect(() => { setSi(0) }, [layerKey, coba])
   useEffect(() => {
+    const def = LAYERS[layerKey], sumber = [def.url, ...(def.alt || [])], idx = Math.min(si, sumber.length - 1)
+    let ok = 0, gagal = 0, pindah = false
     const Layer = L.TileLayer.extend({
       createTile(coords, done) {
         const img = document.createElement('img')
@@ -35,18 +41,21 @@ function OfflineTiles({ layerKey }) {
             img.onerror = () => done(null, img)
             img.src = o
           } else {
-            img.onload = () => done(null, img); img.onerror = () => { img.removeAttribute('src'); img.style.opacity = 0; done(null, img) }
+            img.onload = () => { ok++; gagal = 0; onStatus?.('ok'); done(null, img) }
+            img.onerror = () => {
+              img.removeAttribute('src'); img.style.opacity = 0; done(null, img)
+              if (ok === 0 && ++gagal >= 6 && !pindah) { pindah = true; idx < sumber.length - 1 ? setSi(idx + 1) : onStatus?.('gagal') }
+            }
             img.src = url
           }
         })
         return img
       },
     })
-    const def = LAYERS[layerKey]
-    const layer = new Layer(def.url('{z}', '{x}', '{y}'), { maxZoom: MAX_ZOOM, maxNativeZoom: def.maxNative, attribution: def.attr })
+    const layer = new Layer(sumber[idx]('{z}', '{x}', '{y}'), { maxZoom: MAX_ZOOM, maxNativeZoom: def.maxNative, attribution: def.attr })
     layer.addTo(map)
     return () => { map.removeLayer(layer) }
-  }, [map, layerKey])
+  }, [map, layerKey, si, coba]) // eslint-disable-line
   return null
 }
 
@@ -59,16 +68,17 @@ const pinIcon = (nama) => L.divIcon({
 })
 
 const poleIcon = (p, sel, s = 1) => {
-  const c = colorOf(p.kondisi), size = Math.max(10, Math.round(34 * s)), n = (p.konsBaru || []).length
+  const c = colorOf(p.kondisi), size = Math.max(8, Math.round(22 * s)), n = (p.konsBaru || []).length
+  const sd = Math.round(p.sudut || 0), tampilSudut = sd >= 1 && s >= 0.7
   const svg = renderToStaticMarkup(<svg width={size} height={size} viewBox="-17 -17 34 34"><Sym t={symOfPoint(p)} s={statusOf(p.kondisi)} k={1.25} /></svg>)
   const label = s >= 0.45 && p.nomor
-    ? `<span style="background:${c};font-size:${(11 * s).toFixed(1)}px;padding:${(1 * s).toFixed(1)}px ${(6 * s).toFixed(1)}px;top:${Math.round(-14 * s)}px;border-radius:${Math.round(5 * s)}px">${esc(p.nomor)}</span>` : ''
-  const badge = n && s >= 0.6 ? `<i class="pole-kb" style="font-size:${(9.5 * s).toFixed(1)}px;min-width:${Math.round(15 * s)}px;height:${Math.round(15 * s)}px">+${n}</i>` : ''
+    ? `<span style="background:${c};font-size:${(9 * s).toFixed(1)}px;padding:${(0.5 * s).toFixed(1)}px ${(4 * s).toFixed(1)}px;top:${Math.round(-11 * s)}px;border-radius:${Math.round(4 * s)}px">${esc(p.nomor)}${tampilSudut ? ` · ${sd}°` : ''}</span>` : ''
+  const badge = n && s >= 0.6 ? `<i class="pole-kb" style="font-size:${(8 * s).toFixed(1)}px;min-width:${Math.round(12 * s)}px;height:${Math.round(12 * s)}px;right:-5px;top:-5px">+${n}</i>` : ''
   return L.divIcon({ className: 'pole-wrap', html: `<div class="pole ${sel ? 'sel' : ''}" style="width:${size}px;height:${size}px">${svg}${label}${badge}</div>`, iconSize: [size, size], iconAnchor: [size / 2, size / 2] })
 }
 const crossIcon = (type, s = 1) => {
-  const size = Math.max(10, Math.round(26 * s))
-  return L.divIcon({ className: 'pole-wrap', html: `<div class="cross ${type}" style="width:${size}px;height:${size}px;font-size:${(13 * s).toFixed(1)}px;border-radius:${Math.round(6 * s)}px">${type === 'SUTT' ? '⚡' : type === 'Sungai' ? '≈' : '═'}</div>`, iconSize: [size, size], iconAnchor: [size / 2, size / 2] })
+  const size = Math.max(8, Math.round(18 * s))
+  return L.divIcon({ className: 'pole-wrap', html: `<div class="cross ${type}" style="width:${size}px;height:${size}px;font-size:${(10 * s).toFixed(1)}px;border-radius:${Math.round(5 * s)}px">${type === 'SUTT' ? '⚡' : type === 'Sungai' ? '≈' : '═'}</div>`, iconSize: [size, size], iconAnchor: [size / 2, size / 2] })
 }
 
 function Clicker({ onMap }) { useMapEvents({ click: (e) => onMap(e.latlng) }); return null }
@@ -125,6 +135,8 @@ export default function MapView({ project, selected, onSelect, mode, running, on
   const [layerKey, setLayerKey] = useState(getLayerPref)
   const pilihLayer = (k) => { setLayerKey(k); setLayerPref(k) }
   const [zoom, setZoom] = useState(ZOOM_PENUH)
+  const [petaGagal, setPetaGagal] = useState(false), [coba, setCoba] = useState(0)
+  const statusTile = (st) => setPetaGagal(st === 'gagal')
   const s = skalaMarker(zoom)
   const pts = project.points, ptsB = project.pointsBongkar || []
   const first = pts[0] || ptsB[0]
@@ -140,8 +152,9 @@ export default function MapView({ project, selected, onSelect, mode, running, on
     if (mode === 'silang') onAddCross(ll)
   }
   return (
+    <>
     <MapContainer center={center} zoom={17} maxZoom={MAX_ZOOM} zoomControl={false} className={`map ${offline ? 'map-offline' : ''}`}>
-      {!offline && <OfflineTiles layerKey={layerKey} />}
+      {!offline && <OfflineTiles layerKey={layerKey} onStatus={statusTile} coba={coba} />}
       {offline && (
         <>
           <Pane name="petaoffline" style={{ zIndex: 250 }}>{offline.url && <ImageOverlay url={offline.url} bounds={offline.bounds} />}</Pane>
@@ -181,5 +194,13 @@ export default function MapView({ project, selected, onSelect, mode, running, on
       {pin && <Marker position={[pin.lat, pin.lng]} icon={pinIcon(pin.nama)} zIndexOffset={1000} />}
       {gpsPos && <CircleMarker center={[gpsPos.lat, gpsPos.lng]} radius={8} pathOptions={{ color: '#fff', weight: 3, fillColor: '#0B6AA6', fillOpacity: 1 }} />}
     </MapContainer>
+    {petaGagal && !offline && (
+      <div className="map-err" role="alert">
+        <b>Peta tidak bisa dimuat.</b>
+        <span>Penyedia peta menolak permintaan (mis. butuh API key) atau tidak ada internet. Coba lagi, ganti tampilan Peta/Satelit, atau pakai peta offline unggahan.</span>
+        <button type="button" onClick={() => { setPetaGagal(false); setCoba((n) => n + 1) }}>Coba lagi</button>
+      </div>
+    )}
+    </>
   )
 }

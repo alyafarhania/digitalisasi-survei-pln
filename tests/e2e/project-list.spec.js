@@ -8,10 +8,10 @@ test.describe('Daftar project', () => {
   })
   test('formulir project baru: tombol aktif setelah nama & alamat terisi', async ({ page }) => {
     await seed(page, 'surveyor'); await page.goto('/project/baru'); const b = page.getByRole('button', { name: /Simpan & Lanjut/ })
-    await expect(b).toBeDisabled(); await page.getByPlaceholder(/^contoh PABRIK/).fill('PABRIK UJI'); await expect(b).toBeDisabled(); await page.getByPlaceholder(/^Alamat/).fill('Jl. Uji'); await expect(b).toBeEnabled()
+    await expect(b).toBeDisabled(); await page.getByPlaceholder('Nama pelanggan').fill('PABRIK UJI'); await expect(b).toBeDisabled(); await page.getByPlaceholder(/^Alamat/).fill('Jl. Uji'); await expect(b).toBeEnabled()
   })
   test('placeholder memakai kata "contoh" (bukan "mis.")', async ({ page }) => {
-    await seed(page, 'surveyor'); await page.goto('/project/baru'); await expect(page.getByPlaceholder(/^contoh PB\//)).toBeVisible(); await expect(page.locator('input[placeholder^="mis."]')).toHaveCount(0)
+    await seed(page, 'surveyor'); await page.goto('/project/baru'); await expect(page.getByPlaceholder('Nomor pekerjaan')).toBeVisible(); await expect(page.locator('input[placeholder^="mis."]')).toHaveCount(0)
   })
   test('project dibuat: kartu menampilkan pembuat dan terakhir diubah', async ({ page }) => {
     await seed(page, 'surveyor'); await createProject(page); await page.goto('/')

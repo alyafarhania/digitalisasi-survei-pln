@@ -139,7 +139,7 @@ function Inner({ go }) {
           <button className="btn ghost" onClick={() => go('offline')}><Icon n="wifioff" size={16} /> Unduh area peta</button>
         </div>
       </div>
-      <div className="split">
+      <div className={`split ${adaTerpilih ? 'buka' : ''}`}>
         <div>
           <div className="mapstage">
           <div className="rmap">
@@ -172,13 +172,6 @@ function Inner({ go }) {
           </div>
           {panel && <PetaOfflinePanel po={project.petaOffline} hilang={hilang} readOnly={ro} busy={busyPeta} adaTitik={project.points.length > 0} onClose={() => setPanel(false)}
             onUpload={unggahPeta} onAktif={(v) => ubahPetaOff({ aktif: v })} onLebar={(w) => ubahPetaOff({ widthM: w })} onPusat={(c) => ubahPetaOff({ center: c })} onKalibrasi={mulaiKalibrasi} onHapus={hapusPeta} />}
-          {adaTerpilih && (
-            <div id="atribut" className="atr-float">
-              <button type="button" className="atr-x" aria-label="Tutup panel atribut" title="Tutup" onClick={() => setSelId(null)}><Icon n="x" size={16} /></button>
-              <AtributPanel project={{ ...project, points: daftarSel }} bongkar={terpilihB} index={idx} onIndex={(i) => setSelId(daftarSel[i].id)} onChange={change}
-                onDelete={(id) => { del(id); toast('Titik dihapus') }} onSaved={() => toast('Titik tersimpan otomatis')} />
-            </div>
-          )}
           </div>
           <div className="stat-row">
             <div className="stat"><b>{project.points.length}</b><span>Titik tiang</span></div>
@@ -188,6 +181,13 @@ function Inner({ go }) {
             <div className="stat"><b>{tajam}</b><span>Belokan tajam (sudut dalam &lt; {BATAS_SUDUT_DALAM}°)</span></div>
           </div>
         </div>
+        {adaTerpilih && (
+          <aside id="atribut" className="atr-side" aria-label="Atribut titik">
+            <button type="button" className="atr-x" aria-label="Tutup panel atribut" title="Tutup" onClick={() => setSelId(null)}><Icon n="x" size={16} /></button>
+            <AtributPanel project={{ ...project, points: daftarSel }} bongkar={terpilihB} index={idx} onIndex={(i) => setSelId(daftarSel[i].id)} onChange={change}
+              onDelete={(id) => { del(id); toast('Titik dihapus') }} onSaved={() => toast('Titik tersimpan otomatis')} />
+          </aside>
+        )}
       </div>
     </>
   )

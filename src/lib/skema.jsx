@@ -3,7 +3,10 @@ import { isTajam } from '../store'
 import { keGambar, petaAktif } from './petaOffline'
 import { Sym, C_BARU, C_EKS, C_BONGKAR, colorOf, statusOf, equipSym, tiangSym, lineSymOf } from './symbols'
 
-export const RIGHT = 890, WARN = '#FF8A00', BOX_W = 104, MX = 120, MY = 120
+// Lembar 1280 satuan: area gambar di kiri (0..RIGHT), panel legenda sempit di kanan (lebar PW, ±24%) seperti gambar contoh.
+// Tabel Pasang/Bongkar selalu TABEL_BARIS baris (mengikuti sheet GAMBAR pada Excel acuan: 35 baris).
+export const RIGHT = 960, PW = 310, TABEL_BARIS = 35, RH = 13, HMIN = 960
+export const WARN = '#FF8A00', BOX_W = 104, MX = 120, MY = 120
 // Jalur pembongkaran (ungu) digambar sejajar jalur pemasangan (merah), digeser OFF_B satuan gambar ke atas agar keduanya terlihat
 export const OFF_B = 22
 export const tiangCode = (p) => {
@@ -51,14 +54,14 @@ const readable = (deg) => { let a = ((deg % 360) + 360) % 360; if (a > 180) a -=
 // Posisi titik pada gambar mengikuti koordinat asli (utara di atas), diskalakan agar muat di lembar.
 // Dengan peta offline unggahan (po), seluruh gambar peta diletakkan sebagai latar di area gambar dan titik diposisikan
 // tepat di atasnya (bg = kotak gambar latar pada lembar).
-export function layoutJalur(pts, po) {
+export function layoutJalur(pts, po, hmin = HMIN) {
   if (po) {
     const x0 = 10, y0 = 80, AW = RIGHT - 10 - 2 * x0, HMAX_IMG = 1900 - y0 - 20
     const k = Math.min(AW / po.w, HMAX_IMG / po.h), iw = po.w * k, ih = po.h * k
-    const bx = x0 + (AW - iw) / 2, H = Math.max(905, y0 + ih + 20)
+    const bx = x0 + (AW - iw) / 2, H = Math.max(hmin, y0 + ih + 20)
     return { P: pts.map((q) => { const { fx, fy } = keGambar(po, q); return { x: bx + fx * iw, y: y0 + fy * ih } }), H, s: iw / po.widthM, bg: { x: bx, y: y0, w: iw, h: ih } }
   }
-  if (!pts.length) return { P: [], H: 905, s: 1 }
+  if (!pts.length) return { P: [], H: hmin, s: 1 }
   const lat0 = pts[0].lat, lng0 = pts[0].lng, kx = 111320 * Math.cos((lat0 * Math.PI) / 180), ky = 110574
   const m = pts.map((q) => ({ x: (q.lng - lng0) * kx, y: -(q.lat - lat0) * ky }))
   const xs = m.map((q) => q.x), ys = m.map((q) => q.y)
@@ -66,7 +69,7 @@ export function layoutJalur(pts, po) {
   const spanX = Math.max(maxX - minX, 1), spanY = Math.max(maxY - minY, 1)
   const availW = RIGHT - 10 - 2 * MX, HMAX = 1900
   const sc = Math.min(availW / spanX, (HMAX - 2 * MY) / spanY)
-  const H = Math.max(905, spanY * sc + 2 * MY)
+  const H = Math.max(hmin, spanY * sc + 2 * MY)
   const ox = MX + (availW - spanX * sc) / 2 - minX * sc
   const oy = MY + (H - 2 * MY - spanY * sc) / 2 - minY * sc
   return { P: m.map((q) => ({ x: ox + q.x * sc, y: oy + q.y * sc })), H, s: sc }
@@ -116,7 +119,8 @@ export function letakKotak(P, boxH, ex) {
 export function buatSkema(p) {
   const pts = p.points, ptsB = p.pointsBongkar || [], po = petaAktif(p)
   // kedua jalur memakai satu skala/tata letak; jalur pembongkaran (ungu) digeser OFF_B ke atas jalur pemasangan (merah)
-  const lay = layoutJalur([...pts, ...ptsB], po), P = lay.P.slice(0, pts.length)
+  const rk = ringkasPasang(p), nRow = Math.max(TABEL_BARIS, rk.pasang.length, rk.bongkar.length) // tinggi lembar mengikuti jumlah baris tabel
+  const lay = layoutJalur([...pts, ...ptsB], po, HMIN + (nRow - TABEL_BARIS) * RH), P = lay.P.slice(0, pts.length)
   const PB = lay.P.slice(pts.length).map((q) => ({ x: q.x, y: q.y - OFF_B }))
   const boxH = (i) => 24 + Math.max(1, boxLines(pts[i]).length) * 14
   const boxHB = (i) => 24 + Math.max(1, boxLines(ptsB[i], true).length) * 14
@@ -140,7 +144,7 @@ export function buatSkema(p) {
     const A = P[best.i], B = P[best.i + 1]
     return { x: A.x + best.t * (B.x - A.x), y: A.y + best.t * (B.y - A.y), ang: (Math.atan2(B.y - A.y, B.x - A.x) * 180) / Math.PI }
   }
-  return { pts, P, H: lay.H, bg: lay.bg || null, box, boxH, dekat, sp: spans(pts), place, ptsB, PB, boxB, boxHB, spB: spans(ptsB) }
+  return { pts, P, H: lay.H, bg: lay.bg || null, box, boxH, dekat, sp: spans(pts), place, ptsB, PB, boxB, boxHB, spB: spans(ptsB), nRow }
 }
 
 // Isi gambar (penyeberangan + jalur + titik). onDown: seret kotak (halaman Gambar); onSelect/selId: sinkron dengan peta.

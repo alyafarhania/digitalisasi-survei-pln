@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { RIGHT, boxLines, buatSkema, layoutJalur, letakKotak, ringkasPasang, shortKond, tiangCode } from '../../src/lib/skema.jsx'
+import { RIGHT, HMIN, boxLines, buatSkema, layoutJalur, letakKotak, ringkasPasang, shortKond, tiangCode } from '../../src/lib/skema.jsx'
 import { loadMaster } from '../../src/lib/konstruksi.js'
 import { recompute } from '../../src/store.jsx'
 import { demoProject } from '../../src/lib/seed.js'
@@ -22,7 +22,7 @@ describe('ringkasan Pasang / Bongkar', () => {
   })
 })
 describe('tata letak jalur', () => {
-  it('tanpa titik', () => expect(layoutJalur([])).toEqual({ P: [], H: 905, s: 1 }))
+  it('tanpa titik', () => expect(layoutJalur([])).toEqual({ P: [], H: HMIN, s: 1 }))
   const pts = recompute(demoProject()).points
   it('utara di atas: lintang lebih besar = y lebih kecil', () => { const { P } = layoutJalur([{ lat: -7.70, lng: 110.6 }, { lat: -7.71, lng: 110.6 }]); expect(P[0].y).toBeLessThan(P[1].y) })
   it('semua titik berada di dalam lembar', () => { const { P, H } = layoutJalur(pts); for (const q of P) { expect(q.x).toBeGreaterThan(0); expect(q.x).toBeLessThan(RIGHT); expect(q.y).toBeGreaterThan(0); expect(q.y).toBeLessThan(H) } })

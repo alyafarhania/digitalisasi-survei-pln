@@ -21,9 +21,12 @@ export const clearTiles = () => tx('readwrite', (s) => s.clear()).catch(() => nu
 // maxNative = zoom tertinggi yang ada gambarnya; di atas itu gambar diperbesar saja (maxZoom).
 export const LAYERS = {
   // Peta jalan TANPA tulisan (tanpa nama jalan/tempat). Nama tempat hanya muncul pada hasil pencarian.
+  // alt = sumber cadangan tanpa API key; dipakai otomatis bila sumber utama gagal dimuat
   peta: { nama: 'Peta', url: (z, x, y) => `https://a.basemaps.cartocdn.com/rastertiles/voyager_nolabels/${z}/${x}/${y}.png`, maxNative: 19, mb: 0.015,
+    alt: [(z, x, y) => `https://a.basemaps.cartocdn.com/light_nolabels/${z}/${x}/${y}.png`],
     attr: '© OpenStreetMap contributors © CARTO' },
   satelit: { nama: 'Satelit', url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`, maxNative: 19, mb: 0.03,
+    alt: [(z, x, y) => `https://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`, (z, x, y) => `https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`],
     attr: 'Tiles © Esri — Esri, Maxar, Earthstar Geographics, dan komunitas GIS' },
 }
 export const MAX_ZOOM = 21

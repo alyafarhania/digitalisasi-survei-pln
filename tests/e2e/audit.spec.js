@@ -31,7 +31,7 @@ test.describe('Audit: dibuat, difinalisasi, terakhir diubah', () => {
     await page.getByRole('button', { name: 'Riwayat' }).click(); await expect(page.locator('.timeline')).toContainText('Dibuka kembali')
   })
   test('terakhir diubah mengikuti pengubah terakhir, pembuat tetap', async ({ page }) => {
-    await seed(page, 'asman', { projects: [projectDoc()] }); await page.goto('/project/kode0001ab/data'); await page.getByPlaceholder(/^contoh PABRIK/).fill('DIUBAH PERENCANA'); await page.waitForTimeout(1000)
+    await seed(page, 'asman', { projects: [projectDoc()] }); await page.goto('/project/kode0001ab/data'); await page.getByPlaceholder('Nama pelanggan').fill('DIUBAH PERENCANA'); await page.waitForTimeout(1000)
     await page.goto('/'); const a = au(page, 'DIUBAH PERENCANA'); await expect(a.locator('div', { hasText: 'Terakhir diubah' }).first()).toContainText('Bagus Prasetyo'); await expect(a.locator('div', { hasText: 'Dibuat oleh' }).first()).toContainText('Agus Santoso')
   })
   test('menyalin dicatat atas nama penyalin (riwayat: "Salinan dari …")', async ({ page }) => {

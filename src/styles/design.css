@@ -416,3 +416,43 @@ fieldset.ro:disabled{opacity:.72}fieldset.ro:disabled .leaflet-container{cursor:
 .mtools button i.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;border:1.5px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
 .mtools button.on.bongkar{background:#9B30D9}
 .gp-h + table.lg td svg{display:block;margin:0 auto}
+
+/* Panel legenda gambar: lebih sempit & rapat (tabel Pasang/Bongkar 35 baris seperti Excel acuan) */
+.gpanel{font-size:10.5px}
+.gp-t{padding:7px 4px;font-size:11px}.gp-h{padding:6px 5px 3px;font-size:10.5px}
+.lg.leg th,.lg.leg td{height:17px;font-size:9.5px;padding:0 2px;line-height:1.1}
+.lg.bp th{height:18px;font-size:10px}.lg.bp td{height:15px;font-size:9px;padding:0 2px;line-height:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lg.bp td:nth-child(3n){text-align:right}.lg.bp td:nth-child(3){border-right:1.5px solid #333}
+.gpanel textarea{font-size:11px}
+.gtb input{height:24px;font-size:11px}
+
+/* ===== Panel atribut titik di LUAR peta: hanya ada saat titik dipilih ===== */
+.rmain .split.buka{grid-template-columns:minmax(0,1fr) 380px;align-items:start;gap:14px}
+.atr-side{position:sticky;top:calc(var(--hdr) + 10px);max-height:calc(100svh - var(--hdr) - var(--foot) - 24px);overflow:auto;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh-md);animation:atrmasuk .16s ease-out}
+.atr-side .card{border:0;box-shadow:none;margin:0}
+.atr-side .atr-x{position:absolute;right:8px;top:8px;z-index:3}
+@keyframes atrmasuk{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+@media(max-width:1023px){.rmain .split.buka{grid-template-columns:minmax(0,1fr)}.atr-side{position:relative;top:auto;max-height:none}}
+.rin.auto{background:var(--primary-soft);font-weight:700;color:var(--primary-ink)}
+
+/* ===== Header langkah (stepper) tersembunyi di halaman peta; muncul saat hover area navigasi ===== */
+.rapp.autohide{--stepbar:0px}
+.stepwrap.auto{position:sticky;top:var(--hdr);height:0;z-index:1950}
+.stepwrap.auto::before{content:"";position:absolute;left:0;right:0;top:0;height:14px;z-index:1}
+.stepwrap.auto .stepbar{position:absolute;left:0;right:0;top:0;transform:translateY(-105%);opacity:0;pointer-events:none;transition:transform .2s ease,opacity .2s ease;box-shadow:var(--sh-md)}
+.stepwrap.auto:hover .stepbar,.stepwrap.auto:focus-within .stepbar,.stepwrap.auto.open .stepbar{transform:none;opacity:1;pointer-events:auto}
+.stepwrap-tab{position:absolute;left:50%;top:0;transform:translateX(-50%);z-index:2;display:flex;align-items:center;gap:5px;height:20px;padding:0 12px;border:1px solid var(--line);border-top:0;border-radius:0 0 10px 10px;background:rgba(255,255,255,.95);color:var(--primary-ink);font-size:11px;font-weight:600;cursor:pointer;box-shadow:var(--sh-sm)}
+.stepwrap.auto:hover .stepwrap-tab,.stepwrap.auto.open .stepwrap-tab{opacity:0;pointer-events:none}
+
+/* ===== Peta gagal dimuat ===== */
+.map-err{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:900;max-width:min(420px,calc(100% - 28px));display:grid;gap:8px;padding:14px 16px;background:#fff;border:1px solid var(--bad);border-radius:12px;box-shadow:var(--sh-md);font-size:13px}
+.map-err b{color:var(--bad)}.map-err span{color:var(--muted)}.map-err button{justify-self:start;height:32px;padding:0 14px;border-radius:8px;border:0;background:var(--primary);color:#fff;font-weight:600;cursor:pointer}
+
+/* ===== Panduan & checklist: satu bilah lipat di bagian atas semua halaman ===== */
+.rbody{flex-direction:column;padding-right:0;gap:0}
+.guide{order:-1;flex:none;position:static;margin:0;width:100%}
+.guide-d{display:none}
+.guide-m{display:block;margin:10px 14px 0}
+.guide-m summary{padding:8px 12px;font-size:13px}
+.guide-m .guide-list{grid-template-columns:repeat(auto-fill,minmax(280px,1fr));column-gap:12px}
+.guide-m .guide-tip{font-size:12px;padding:8px 10px}

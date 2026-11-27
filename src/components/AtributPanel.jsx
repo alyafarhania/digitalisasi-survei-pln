@@ -53,6 +53,8 @@ function KonsBaruEditor({ p, onChange }) {
 
 // F3 Atribut per titik: tab titik di atas, isian dua kolom (mengikuti referensi)
 // bongkar = titik pada jalur pembongkaran (ungu): hanya data tiang/penghantar dan konstruksi yang dibongkar
+// Titik pertama/terakhir tidak punya belokan (hanya satu segmen), sehingga sudutnya 0°.
+const sudutText = (p, arr, i) => (arr.length < 3 || i === 0 || i === arr.length - 1 ? '0° (ujung jalur)' : `${Math.round(p.sudut || 0)}°`)
 export default function AtributPanel({ project, index, onIndex, onChange, onDelete, onSaved, bongkar }) {
   const p = project.points[index]
   const head = (
@@ -77,6 +79,7 @@ export default function AtributPanel({ project, index, onIndex, onChange, onDele
           <F label="Jenis tiang"><Combo value={p.jenisTiang} onChange={set('jenisTiang')} options={MASTER.tiang.map((t) => t.nama)} /></F>
           <F label="Jenis peralatan"><Combo value={p.peralatan} onChange={set('peralatan')} options={MASTER.peralatan.map((t) => t.nama)} placeholder="Ketik untuk mencari…" /></F>
           <F label="Jenis konduktor"><Combo value={p.konduktor} onChange={set('konduktor')} options={MASTER.konduktor.map((t) => ({ v: t.nama, l: `${t.nama} · ${t.kelompok_garis} ${t.fasa} fasa` }))} /></F>
+          <F label="Sudut belokan (°)" hint={`Otomatis dari titik sebelum & sesudah · sudut dalam ${sudutDalam(p)}°${tajam ? ' (terlalu tajam)' : ''}`}><input className="rin auto" readOnly value={sudutText(p, project.points, index)} aria-label="Sudut belokan otomatis" /></F>
           <F label="Panjang konduktor (m)" hint="Dihitung dari jarak dua titik, bisa diedit."><input className="rin" inputMode="numeric" value={p.panjang ?? ''} onChange={(e) => set('panjang')(e.target.value)} placeholder={String(autoLen)} /></F>
           {!bongkar && (<F label="Konstruksi baru (utama)" hint={tajam ? `Sudut dalam ${sudutDalam(p)}° (< ${BATAS_SUDUT_DALAM}°): terlalu tajam` : p.kodeManual ? 'Diubah manual' : `Otomatis dari belokan ${p.sudut ?? 0}°`}><Combo value={kode} onChange={(v) => onChange(p.id, { kodeManual: v || undefined })} options={kons} placeholder="Pilih kode" /></F>)}
           {!bongkar && (<KonsBaruEditor key={p.id} p={p} onChange={onChange} />)}

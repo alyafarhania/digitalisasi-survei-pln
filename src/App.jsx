@@ -68,6 +68,7 @@ function Shell() {
   const { user, can: izin, canEdit: bisaUbah } = useAuth()
   const pathname = usePathname(), router = useRouter()
   const view = useMemo(() => parseRoute(pathname), [pathname])
+  const [navBuka, setNavBuka] = useState(false)
   const [saving, setSaving] = useState(false), [snack, setSnack] = useState(null), [leave, setLeave] = useState(false), [loadErr, setLoadErr] = useState(null)
   const prevPath = useRef('/'), lastPath = useRef(pathname)
   useEffect(() => { if (lastPath.current !== pathname) { prevPath.current = lastPath.current; lastPath.current = pathname } }, [pathname])
@@ -128,7 +129,7 @@ function Shell() {
     go('project')
   }
   return (
-    <div className="rapp">
+    <div className={`rapp ${view.page === 'peta' ? 'autohide' : ''}`}>
       <header className="rhdr">
         <button className="rbrand" onClick={keDaftar} aria-label="Ke daftar project">
           <div className="logo-wrap"><img src="/logo-icon.png" alt="Logo PLN" /></div>
@@ -137,7 +138,14 @@ function Shell() {
         <div className="rhdr-r"><SyncPill onClick={() => go('offline')} active={util} /><UserMenu /></div>
       </header>
       {util && <div className="stepbar util"><div className="stepbar-in"><Button variant="secondary" size="sm" icon="chevL" onClick={() => router.push(prevPath.current && prevPath.current !== '/offline' ? prevPath.current : '/')}>Kembali</Button></div></div>}
-      {inProject && <Stepper page={view.page} status={status} project={baru ? null : active} go={go} onHome={keDaftar} />}
+      {inProject && view.page === 'peta' && (
+        // Di halaman peta header langkah disembunyikan; muncul saat kursor diarahkan ke garis/tab di bawah header (atau fokus keyboard / ketuk tab di HP)
+        <div className={`stepwrap auto ${navBuka ? 'open' : ''}`} onMouseLeave={() => setNavBuka(false)}>
+          <button type="button" className="stepwrap-tab" onClick={() => setNavBuka((v) => !v)} aria-expanded={navBuka} aria-label="Tampilkan langkah kerja"><Icon n="chevD" size={14} /><span>Langkah kerja</span></button>
+          <Stepper page={view.page} status={status} project={baru ? null : active} go={go} onHome={keDaftar} />
+        </div>
+      )}
+      {inProject && view.page !== 'peta' && <Stepper page={view.page} status={status} project={baru ? null : active} go={go} onHome={keDaftar} />}
       <div className={`rbody ${view.page === 'rab' || view.page === 'peta' ? 'wide' : ''} ${view.page === 'peta' ? 'peta' : ''}`}>
         {inProject && siap && <StepGuide page={view.page} project={baru ? null : active} onToggle={toggleGuide} />}
         <main className="rmain">

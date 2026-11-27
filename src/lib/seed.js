@@ -9,6 +9,6 @@ export const demoProject = () => ({
     P(-7.70720, 110.60345, { nomor: 'T4', peralatan: 'Trafo 3 phasa 100 kVA YNyn0' }), P(-7.70790, 110.60410, { nomor: 'T5', kondisi: 'Eksisting' }),
   ],
   crossings: [{ id: crypto.randomUUID(), type: 'Jalan', lat: -7.70625, lng: 110.60165, label: 'Jl. Raya Klaten' }, { id: crypto.randomUUID(), type: 'SUTT', tinggi: '11', lat: -7.70688, lng: 110.60317, label: 'SUTT 150 kV' }],
-  meta: { noGambar: '001/PLN/2026', skala: '1 : 500', perihal: 'Pasang Baru', digambar: '', diperiksa: '', diketahui: '', disetujui: '' },
+  meta: { noGambar: '001/PLN/2026', skala: '1 : 2000', perihal: 'Pasang Baru', digambar: '', diperiksa: '', diketahui: '', disetujui: '' },
   rabOpt: { harga: 'HSS', jenis: 'Total', asal: 'Gudang UP3' }, priceEdits: {}, labelPos: {}, foto: [],
 })

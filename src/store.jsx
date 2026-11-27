@@ -16,7 +16,14 @@ const CLIENT_ID = (() => { try { let c = localStorage.getItem('pln-client'); if 
 const randKode = () => { const a = new Uint8Array(8); crypto.getRandomValues(a); return Array.from(a, (b) => 'abcdefghjkmnpqrstuvwxyz23456789'[b % 31]).join('') + 'x2' }
 
 function load() {
-  try { const raw = localStorage.getItem(KEY); if (raw) return JSON.parse(raw) } catch { /* abaikan */ }
+  try {
+    const raw = localStorage.getItem(KEY)
+    if (raw) {
+      const s = JSON.parse(raw)
+      // skala gambar standar sekarang 1 : 2000 (project lama yang masih memakai bawaan lama 1 : 500 ikut diperbarui)
+      return { ...s, projects: (s.projects || []).map((p) => (p.meta?.skala === '1 : 500' ? { ...p, meta: { ...p.meta, skala: '1 : 2000' } } : p)) }
+    }
+  } catch { /* abaikan */ }
   return { projects: [], activeId: null }
 }
 
@@ -146,7 +153,7 @@ export function Provider({ children }) {
       const id = crypto.randomUUID(), n = state.projects.length + 1, now = new Date().toISOString(), by = actorOf(userRef.current)
       const p = { id, kode: randKode(), version: 0, dirty: true, localAt: Date.now(), nomor: `${data.jenis === 'Tambah Daya' ? 'TD' : 'PB'}-2026-${String(n).padStart(3, '0')}`,
         status: 'Draft', tanggal: now.slice(0, 10), points: [], pointsBongkar: [], crossings: [], jalur: 'KONSTRUKSI JTM 3 FASA PADA TIANG BETON',
-        meta: { noGambar: '', skala: '1 : 500', perihal: data.jenis, digambar: '', diperiksa: '', diketahui: '', disetujui: '' },
+        meta: { noGambar: '', skala: '1 : 2000', perihal: data.jenis, digambar: '', diperiksa: '', diketahui: '', disetujui: '' },
         rabOpt: { harga: 'HSS', jenis: 'Total', asal: 'Gudang UP3', slo: true }, priceEdits: {}, labelPos: {}, foto: [], guide: {},
         createdBy: by, createdAt: now, lastEditedBy: by, lastEditedAt: now, audit: [auditEntry('created', userRef.current)], ...data }
       setState((s) => ({ ...s, projects: [p, ...s.projects], activeId: id })); schedule(id); return p.kode

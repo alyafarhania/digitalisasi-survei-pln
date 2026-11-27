@@ -185,7 +185,7 @@ body{font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;line-height
 .gtb>div{border:1px solid #333;margin:-1px 0 0 -1px;padding:3px 6px}.gtb small{display:block;font-size:9.5px;color:#555;text-transform:uppercase;letter-spacing:.04em}
 .gtb input{width:100%;height:28px;font-size:12px;border:1px solid #B9C7D4;border-radius:4px;padding:0 6px;margin-top:2px;font:inherit}.gtb .w{grid-column:1/-1}
 .warn{display:flex;gap:8px;align-items:flex-start;background:#FFF4DD;border:1px solid #F2D58A;color:#7A5200;border-radius:8px;padding:8px 12px;font-size:12.5px;margin-bottom:12px}
-@media(min-width:900px){.gsheet2{grid-template-columns:minmax(0,1fr) 330px}.gpanel{border-top:0;border-left:1.5px solid #111}}
+@media(min-width:900px){.gsheet2{grid-template-columns:minmax(0,1fr) 250px}.gpanel{border-top:0;border-left:1.5px solid #111}}
 .rbrand .logo-wrap{height:46px;width:46px;border-radius:8px;overflow:hidden;flex:none;box-shadow:0 0 0 2px rgba(255,255,255,.9);background:#fff}
 .rbrand .logo-wrap img{height:100%;width:100%;display:block}
 @media(min-width:1024px){.pitem{grid-template-columns:1fr auto;align-items:center}}
